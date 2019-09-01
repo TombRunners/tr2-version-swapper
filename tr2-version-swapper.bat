@@ -16,6 +16,7 @@ CALL :SetVariables %~1
 CALL :SetDirectories
 IF %verbose% EQU true CALL :PrintDirectories
 FOR /L %%i IN (1,1,%version_count%) DO (
+    SET trying_version_folder="!version_names[%%i]!"
     IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder
 )
 FOR /L %%i IN (1,1,%file_count%) DO (
@@ -53,9 +54,7 @@ EXIT /b 0
     EXIT /b 1
 
 :MissingFolder
-    ECHO Could not find a !version_names[%i%]! folder with the script.
-    ECHO It should be here:
-    ECHO !folder[%i%]!
+    ECHO Could not find a %trying_version_folder% version folder with the script.
     GOTO :MissingTerminate
 
 :MisplacedScript
@@ -116,12 +115,12 @@ EXIT /b 0
 :SetDirectories
     :: `%~dp0` returns the batch file's absolute directory instead of working.
     SET src=%~dp0
+    :: No backslash is appended to version folders here, requiring manual
+    :: placement elsewhere in the script. This is still preferred actually
+    :: because having the backslash requires placing a leading dot "." at
+    :: the end of the `XCOPY` source parameter, which creates ugly output.
+    :: For more information: https://stackoverflow.com/a/25841519/10466817
     FOR /L %%i IN (1,1,%version_count%) DO (
-        :: No backslash is appended to version folders here, requiring manual
-        :: placement elsewhere in the script. This is still preferred actually
-        :: because having the backslash requires placing a leading dot "." at
-        :: the end of the `XCOPY` source parameter, which creates ugly output.
-        :: For more information: https://stackoverflow.com/a/25841519/10466817
         SET folder[%%i]=%src%!version_names[%%i]!
     )
     CALL :GetParentDir target "%src%" "..\"
