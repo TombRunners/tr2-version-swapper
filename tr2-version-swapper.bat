@@ -5,9 +5,9 @@ SETLOCAL EnableDelayedExpansion
 :: See https://stackoverflow.com/a/36663349/10466817
 :: Note this gets "tricked" by PowerShell, but that's a fringe use case.
 IF "%console_mode%" EQU "" (
-    SET print=false
+    SET pause=false
     FOR %%x IN (%cmdcmdline%) DO (
-        IF /i "%%~x" EQU "/c" SET print=true
+        IF /i "%%~x" EQU "/c" SET pause=true
     )
 )
 
@@ -16,8 +16,7 @@ CALL :SetVariables %~1
 CALL :SetDirectories
 IF %verbose% EQU true CALL :PrintDirectories
 FOR /L %%i IN (1,1,%version_count%) DO (
-    SET trying_version_folder="!version_names[%%i]!"
-    IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder
+    IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder "!version_names[%%i]!"
 )
 FOR /L %%i IN (1,1,%file_count%) DO (
     IF NOT EXIST "%target%!files[%%i]!" GOTO :MisplacedScript
@@ -34,20 +33,38 @@ CALL :GetSelectionIndex
 SET selected_version=!version_names[%index%]!
 ECHO You selected: %selected_version%
 ECHO/
-:: Check that the version folder has all the files.
+:: Check that the version folder has all the game files.
 FOR /L %%i IN (1,1,%file_count%) DO (
-    IF NOT EXIST !folder[%index%]!\!files[%%i]! GOTO :MissingFiles %%i
+    IF NOT EXIST !folder[%index%]!\!files[%%i]! GOTO :MissingFiles %selected_version%
 )
-:: Copy the files
+:: Copy the game files
 XCOPY "!folder[%index%]!" "%target%" /sy || GOTO :CopyError
 ECHO/
 ECHO Version successfully swapped to %selected_version%.
-IF NOT "%selected_version%" EQU "%version_names[1]%" (
-    CALL :PrintMusicInfo
+:: Copy the music files if applicable and desired.
+IF NOT "%selected_version%" EQU "Multipatch" (
+    CALL :CheckMusicFiles "%target%"
+    IF !music_fix_present! NEQ true (
+        CALL :PrintMusicInfo
+        CALL :CheckMusicFiles "!music_fix!"
+        IF !music_fix_present! NEQ true (
+            GOTO :MissingMusicFixFiles
+        )
+        CALL :GetMusicInstallChoice
+        IF !music_choice! EQU 1 (
+            XCOPY "!music_fix!" "!target!" /sy || GOTO :CopyError
+            ECHO/
+            ECHO Music fix successfully installed. No need to uninstall or
+            ECHO modify the relevant files for any future version switch.
+            ECHO/
+        )
+    )
 )
-ECHO Run this script again anytime you wish to change the version again.
+ECHO Run this script again anytime you wish to change the version.
 CALL :PauseIfNeeded
 EXIT /b 0
+
+
 
 :InsufficientPermissions
     ECHO The script does not have permissions to write files/folders.
@@ -57,36 +74,45 @@ EXIT /b 0
     EXIT /b 1
 
 :MissingFolder
-    ECHO Could not find a %trying_version_folder% version folder with the script.
-    GOTO :MissingTerminate
+    ECHO Could not find a %1 folder with the script.
+    GOTO :ReinstallPrompt
 
 :MisplacedScript
     ECHO It appears this script was not placed within a TR2 installation root.
     ECHO (The files to be replaced were not found in the parent folder...)
-    GOTO :MissingTerminate
+    GOTO :ReinstallPrompt
 
 :MissingFiles
-    ECHO Could not find one of the files in the %selected_version% folder!
+    ECHO Could not find one of the files in the %1 folder!
     FOR /L %%i IN (1,1,%file_count%) DO (
         ECHO * `!files[%%i]!`
     )
-    GOTO :MissingTerminate
+    GOTO :ReinstallPrompt
 
-:MissingTerminate
+:MissingMusicFixFiles
+    ECHO Unfortunately, the music fix files are incomplete and thus cannot be
+    ECHO installed with this script right now. Your other files are fine.
+    GOTO :ReinstallPrompt
+
+:ReinstallPrompt
     ECHO/
-    ECHO Please re-install the script folder per the instructions here:
-    ECHO %git_link%
+    ECHO You are advised to re-install the latest release to fix the issue:
+    ECHO %install_link%
     CALL :PauseIfNeeded
     EXIT /b 2
 
 :CopyError
-    ECHO `xcopy.exe` failed to complete successfully.
-    ECHO Depending on the error, your version may or may not have been swapped.
+    ECHO `xcopy.exe` failed to complete successfully. Read the error message
+    ECHO  above to determine the state of your installation.
     CALL :PauseIfNeeded
     EXIT /b 3
 
+
+
 :: The named sections above are used as `GOTO`s and ultimately end the script.
 :: The named sections below are `CALL`ed and used like functions.
+
+
 
 :WritePermissionsCheck
     COPY NUL foo > NUL
@@ -104,6 +130,7 @@ EXIT /b 0
         SET verbose=false
     )
     SET git_link=https://github.com/TombRunners/tr2-version-swapper
+    SET install_link=https://github.com/TombRunners/tr2-version-swapper/releases
     SET version_names[1]=Multipatch
     SET version_names[2]=Eidos Premier Collection
     SET version_names[3]=Eidos UK Box
@@ -113,11 +140,16 @@ EXIT /b 0
     SET files[3]=data\title.pcx
     SET files[4]=data\tombpc.dat
     SET file_count=4
+    SET music_files[1]=fmodex.dll
+    SET music_files[2]=winmm.dll
+    SET music_file_count=2
+    SET music_track_count=61
     EXIT /b 0
 
 :SetDirectories
     :: `%~dp0` returns the batch file's absolute directory instead of working.
     SET src=%~dp0
+    SET music_fix=%src%music_fix
     :: No backslash is appended to version folders here, requiring manual
     :: placement elsewhere in the script. This is still preferred actually
     :: because having the backslash requires placing a leading dot "." at
@@ -138,6 +170,7 @@ EXIT /b 0
     ECHO Using the following directories: [-v]
     ECHO Game: %target%
     ECHO Script: %src%
+    ECHO Music fix: !music_fix!\
     ECHO === Versions ===
     FOR /L %%i IN (1,1,%version_count%) DO (
         ECHO !folder[%%i]!\
@@ -152,9 +185,9 @@ EXIT /b 0
     ECHO The official files with source control can be found here:
     ECHO %git_link% && ECHO/
     ECHO ==== NOTICE ====
-    ECHO This batch script assumes the distributed folder containing the script
-    ECHO is placed in a TR2 installation folder per the README file. If placed
-    ECHO incorrectly, it may refuse to proceed or do worse by erroneously
+    ECHO This batch script assumes the distributed folder containing it resides
+    ECHO in a fresh TR2 Steam installation folder per the README. If placed
+    ECHO incorrectly, the script may refuse to work, or do worse by erroneously
     ECHO proceeding if no problems are detected. Thus, it is asked that you be
     ECHO sure to leave the script and the accompanying game files untouched.
     ECHO ================ && ECHO/
@@ -175,11 +208,43 @@ EXIT /b 0
     ECHO/
     ECHO You switched to a non-Multipatch version. You may find that music no
     ECHO longer works, or that the game lags when loading music. There is a
-    ECHO music fix available which should fix most music issues. You can find
-    ECHO information on the Tomb Runner Discord server or speedrun.com/tr2.
+    ECHO music fix available which should fix most music issues. You can learn
+    ECHO more on the Tomb Runner Discord server or speedrun.com/tr2.
+    ECHO/
+    EXIT /b 0
+
+:CheckMusicFiles
+    :: Check that the folder has all DLLs.
+    FOR /L %%i IN (1,1,%music_file_count%) DO (
+        IF NOT EXIST %1\!music_files[%%i]! GOTO :NotTrue
+    )
+    :: Check that the music folder has all music tracks.
+    FOR /L %%i IN (1,1,%music_track_count%) DO (
+        IF %%i LEQ 9 (
+            SET track=0%%i.wma
+        ) ELSE (
+            SET track=%%i.wma
+        )
+        IF NOT EXIST %1\music\!track! GOTO :NotTrue
+    )
+    SET music_fix_present=true
+    GOTO :Exit
+    :NotTrue
+    SET music_fix_present=false
+    :Exit
+    EXIT /b 0
+
+:GetMusicInstallChoice
+    SET /p music_choice="Install the music fix? [0 = no, 1 = yes]: " < NUL
+    :MusicPrompt
+    CHOICE /c 0123456789 > NUL
+    SET /a "music_choice=%ERRORLEVEL%-1"
+    IF %music_choice% GTR 1 GOTO :MusicPrompt
+    ECHO %music_choice%
+    EXIT /b 0
 
 :PauseIfNeeded
-    IF %print% EQU true (
+    IF %pause% EQU true (
         PAUSE
     )
     EXIT /b 0

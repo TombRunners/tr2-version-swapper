@@ -1,5 +1,5 @@
 ## Information
-This package contains a script which automates switching between TR2 PC game versions.
+This package contains a script which automates switching between Tomb Raider II PC game versions.
 
 The script does the following:
 * Checks its surroundings before proceeding, giving guidance if things seem wrong
@@ -14,6 +14,9 @@ The necessary version files/folders will be provided in releases only.
  * Steam default Multipatch
  * Eidos Premier Collection [EPC]
  * Eidos UK Box [UKB]
+
+ > This script is not intended for use with CD-based installations.
+ > Use it only with digital distributions of TR2 (Steam, GOG).
 
 ## Installation
 Place the entire `tr2-version-swapper` folder (not just its inner contents) into the root of your TR2 installation.
