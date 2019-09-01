@@ -42,6 +42,9 @@ FOR /L %%i IN (1,1,%file_count%) DO (
 XCOPY "!folder[%index%]!" "%target%" /sy || GOTO :CopyError
 ECHO/
 ECHO Version successfully swapped to %selected_version%.
+IF NOT "%selected_version%" EQU "%version_names[1]%" (
+    CALL :PrintMusicInfo
+)
 ECHO Run this script again anytime you wish to change the version again.
 CALL :PauseIfNeeded
 EXIT /b 0
@@ -167,6 +170,13 @@ EXIT /b 0
     IF %index% LSS 1 GOTO :Prompt
     ECHO %index%
     EXIT /b 0
+
+:PrintMusicInfo
+    ECHO/
+    ECHO You switched to a non-Multipatch version. You may find that music no
+    ECHO longer works, or that the game lags when loading music. There is a
+    ECHO music fix available which should fix most music issues. You can find
+    ECHO information on the Tomb Runner Discord server or speedrun.com/tr2.
 
 :PauseIfNeeded
     IF %print% EQU true (
