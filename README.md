@@ -15,27 +15,28 @@ The necessary version files/folders will be provided in releases only.
  * Eidos Premier Collection [EPC]
  * Eidos UK Box [UKB]
 
- > This script is not intended for use with CD-based installations.
- > Use it only with digital distributions of TR2 (Steam, GOG).
+> This script is not intended for use with CD-based installations.
+> Use it only with digital distributions of TR2 (Steam, GOG).
 
 ## Installation
-Place the entire `tr2-version-swapper` folder (not just its inner contents) into the root of your TR2 installation.
+Extract the entire `tr2-version-swapper` archive as its own folder into the root of your TR2 installation.
+You should then have a folder inside of your TR2 installation named `tr2-version-swapper` with files and folders inside.
 The default Steam installation path is `C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider (II)`.
 You can navigate there manually with File Explorer or a similar program.
 
 **Alternatively, from within Steam:**
 * Navigate to your Steam library
-* Right-click Tomb Raider II in the left pane
-* Select Properties
-* Select the Local Files tab
-* Select Browse Local Files
+* Right-click `Tomb Raider II` in the left pane
+* Select `Properties`
+* Select the `Local Files` tab
+* Select `Browse Local Files...`
 
 ## Usage
 **Be sure you installed this folder properly.**
 > The folder `tr2-version-swapper` should be inside your TR2 installation's main folder.
 
 **To swap versions:**
-* Run the batch file by double-clicking `tr2-version-swapper` (it may show the extension `.bat` if this setting is on)
+* Run the batch file by double-clicking `tr2-version-swapper.bat` (it may not show the extension `.bat` if file extensions are hidden)
 * Read and respond to the command window text as prompted
 
 **If you have permissions errors or other issues, try running the script as administrator:**

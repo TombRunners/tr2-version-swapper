@@ -2,8 +2,8 @@
 VERIFY ERRORS 2 > NUL
 SETLOCAL EnableDelayedExpansion
 
-:: See https://stackoverflow.com/a/36663349/10466817
-:: Note this gets "tricked" by PowerShell, but that's a fringe use case.
+REM See https://stackoverflow.com/a/36663349/10466817
+REM Note this gets "tricked" by PowerShell, but that's a fringe use case.
 IF "%console_mode%" EQU "" (
     SET pause=false
     FOR %%x IN (%cmdcmdline%) DO (
@@ -16,32 +16,42 @@ CALL :SetVariables %~1
 CALL :SetDirectories
 IF %verbose% EQU true CALL :PrintDirectories
 FOR /L %%i IN (1,1,%version_count%) DO (
-    IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder "!version_names[%%i]!"
+    SET "version_folder=!version_names[%%i]!"
+    IF %verbose% EQU true ECHO Looking for "!version_folder!\" in "%src%"
+    IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder
 )
 FOR /L %%i IN (1,1,%file_count%) DO (
-    IF NOT EXIST "%target%!files[%%i]!" GOTO :MisplacedScript
+    SET "required_file=!files[%%i]!"
+    IF %verbose% EQU true ECHO Looking for !required_file! in "%target%"
+    IF NOT EXIST "%target%!required_file!" GOTO :MisplacedScript
 )
+IF %verbose% EQU true ECHO/
 
-:: Start the script proper
+REM Start the script proper
 CALL :PrintIntroduction
-:: Get the user's version choice.
+REM Get the user's version choice.
 ECHO Version list:
 FOR /L %%i IN (1,1,%version_count%) DO (
     ECHO     %%i: !version_names[%%i]!
 )
 CALL :GetSelectionIndex
-SET selected_version=!version_names[%index%]!
-ECHO You selected: %selected_version%
+SET "selected_version=!version_names[%index%]!"
+ECHO You selected: "%selected_version%"
 ECHO/
-:: Check that the version folder has all the game files.
+
+REM Check that the version folder has all the game files.
 FOR /L %%i IN (1,1,%file_count%) DO (
-    IF NOT EXIST !folder[%index%]!\!files[%%i]! GOTO :MissingFiles %selected_version%
+    SET "required_file=!files[%%i]!"
+    IF %verbose% EQU true ECHO Looking for !required_file! in "!folder[%index%]!"
+    IF NOT EXIST "!folder[%index%]!\!required_file!" GOTO :MissingFiles
 )
-:: Copy the game files
+IF %verbose% EQU true ECHO/
+
+REM Copy the game files
 XCOPY "!folder[%index%]!" "%target%" /sy || GOTO :CopyError
 ECHO/
-ECHO Version successfully swapped to %selected_version%.
-:: Copy the music files if applicable and desired.
+ECHO Version successfully swapped to "%selected_version%".
+REM Copy the music files if applicable and desired.
 IF NOT "%selected_version%" EQU "Multipatch" (
     CALL :CheckMusicFiles "%target%"
     IF !music_fix_present! NEQ true (
@@ -74,19 +84,18 @@ EXIT /b 0
     EXIT /b 1
 
 :MissingFolder
-    ECHO Could not find a %1 folder with the script.
+    ECHO Could not find a "!version_folder!" folder with the script.
     GOTO :ReinstallPrompt
 
 :MisplacedScript
     ECHO It appears this script was not placed within a TR2 installation root.
-    ECHO (The files to be replaced were not found in the parent folder...)
+    ECHO This script should be in a folder called `tr2-version-swapper` along
+    ECHO with all of the other files in the archive; this folder should be in
+    ECHO the root of a TR2 installation.
     GOTO :ReinstallPrompt
 
 :MissingFiles
-    ECHO Could not find one of the files in the %1 folder!
-    FOR /L %%i IN (1,1,%file_count%) DO (
-        ECHO * `!files[%%i]!`
-    )
+    ECHO Could not find "%required_file%" in the "%selected_version%" folder!
     GOTO :ReinstallPrompt
 
 :MissingMusicFixFiles
@@ -109,8 +118,8 @@ EXIT /b 0
 
 
 
-:: The named sections above are used as `GOTO`s and ultimately end the script.
-:: The named sections below are `CALL`ed and used like functions.
+REM The named sections above are used as `GOTO`s and ultimately end the script.
+REM The named sections below are `CALL`ed and used like functions.
 
 
 
@@ -131,9 +140,9 @@ EXIT /b 0
     )
     SET git_link=https://github.com/TombRunners/tr2-version-swapper
     SET install_link=https://github.com/TombRunners/tr2-version-swapper/releases
-    SET version_names[1]=Multipatch
-    SET version_names[2]=Eidos Premier Collection
-    SET version_names[3]=Eidos UK Box
+    SET "version_names[1]=Multipatch"
+    SET "version_names[2]=Eidos Premier Collection"
+    SET "version_names[3]=Eidos UK Box"
     SET version_count=3
     SET files[1]=tomb2.exe
     SET files[2]=data\floating.tr2
@@ -147,33 +156,33 @@ EXIT /b 0
     EXIT /b 0
 
 :SetDirectories
-    :: `%~dp0` returns the batch file's absolute directory instead of working.
-    SET src=%~dp0
-    SET music_fix=%src%music_fix
-    :: No backslash is appended to version folders here, requiring manual
-    :: placement elsewhere in the script. This is still preferred actually
-    :: because having the backslash requires placing a leading dot "." at
-    :: the end of the `XCOPY` source parameter, which creates ugly output.
-    :: For more information: https://stackoverflow.com/a/25841519/10466817
+    REM `%~dp0` returns the batch file's absolute directory instead of working.
+    SET "src=%~dp0"
+    SET "music_fix=%src%music_fix"
+    REM No backslash is appended to version folders here, requiring manual
+    REM placement elsewhere in the script. This is still preferred actually
+    REM because having the backslash requires placing a leading dot "." at
+    REM the end of the `XCOPY` source parameter, which creates ugly output.
+    REM For more information: https://stackoverflow.com/a/25841519/10466817
     FOR /L %%i IN (1,1,%version_count%) DO (
-        SET folder[%%i]=%src%!version_names[%%i]!
+        SET "folder[%%i]=%src%!version_names[%%i]!"
     )
     CALL :GetParentDir target "%src%" "..\"
     EXIT /b 0
 
 :GetParentDir
-    :: See https://stackoverflow.com/questions/34942604/get-parent-directory-of-a-specific-path-in-batch-script
+    REM See https://stackoverflow.com/questions/34942604/get-parent-directory-of-a-specific-path-in-batch-script
     FOR %%I IN ("%~2\%~3") DO SET "%~1=%%~fI"
     EXIT /b 0
 
 :PrintDirectories
     ECHO Using the following directories: [-v]
-    ECHO Game: %target%
-    ECHO Script: %src%
-    ECHO Music fix: !music_fix!\
+    ECHO Game: "%target%"
+    ECHO Script: "%src%"
+    ECHO Music fix: "!music_fix!\"
     ECHO === Versions ===
     FOR /L %%i IN (1,1,%version_count%) DO (
-        ECHO !folder[%%i]!\
+        ECHO "!folder[%%i]!\"
     )
     ECHO ================
     ECHO/
@@ -194,7 +203,7 @@ EXIT /b 0
     EXIT /b 0
 
 :GetSelectionIndex
-    :: Naturally, this hacky solution only works if `%version_count%` <= 9
+    REM Naturally, this hacky solution only works if `%version_count%` <= 9
     SET /p index="Enter the number of your desired version: " < NUL
     :Prompt
     CHOICE /c 0123456789 > NUL
@@ -214,11 +223,11 @@ EXIT /b 0
     EXIT /b 0
 
 :CheckMusicFiles
-    :: Check that the folder has all DLLs.
+    REM Check that the folder has all DLLs.
     FOR /L %%i IN (1,1,%music_file_count%) DO (
         IF NOT EXIST %1\!music_files[%%i]! GOTO :NotTrue
     )
-    :: Check that the music folder has all music tracks.
+    REM Check that the music folder has all music tracks.
     FOR /L %%i IN (1,1,%music_track_count%) DO (
         IF %%i LEQ 9 (
             SET track=0%%i.wma
