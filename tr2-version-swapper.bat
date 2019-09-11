@@ -11,19 +11,25 @@ IF "%console_mode%" EQU "" (
     )
 )
 
+REM Perform housekeeping and load variables.
 CALL :WritePermissionsCheck
 CALL :SetVariables %~1
 CALL :SetDirectories
 IF %verbose% EQU true CALL :PrintDirectories
-FOR /L %%i IN (1,1,%version_count%) DO (
-    SET "version_folder=!version_names[%%i]!"
-    IF %verbose% EQU true ECHO Looking for "!version_folder!\" in "%src%"
-    IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder
-)
+
+REM Check that the parent folder has all the game files.
 FOR /L %%i IN (1,1,%file_count%) DO (
     SET "required_file=!files[%%i]!"
-    IF %verbose% EQU true ECHO Looking for !required_file! in "%target%"
+    IF %debug% EQU true ECHO Looking for !required_file! in "%target%"
     IF NOT EXIST "%target%!required_file!" GOTO :MisplacedScript
+)
+IF %debug% EQU true ECHO/
+
+REM Check that all version folders are present.
+FOR /L %%i IN (1,1,%version_count%) DO (
+    SET "version_folder=!version_names[%%i]!"
+    IF %debug% EQU true ECHO Looking for "!version_folder!\" in "%src%"
+    IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder
 )
 IF %verbose% EQU true ECHO/
 
@@ -39,7 +45,7 @@ SET "selected_version=!version_names[%index%]!"
 ECHO You selected: "%selected_version%"
 ECHO/
 
-REM Check that the version folder has all the game files.
+REM Check that the selected version folder has all the game files.
 FOR /L %%i IN (1,1,%file_count%) DO (
     SET "required_file=!files[%%i]!"
     IF %verbose% EQU true ECHO Looking for !required_file! in "!folder[%index%]!"
@@ -51,6 +57,7 @@ REM Copy the game files
 XCOPY "!folder[%index%]!" "%target%" /sy || GOTO :CopyError
 ECHO/
 ECHO Version successfully swapped to "%selected_version%".
+
 REM Copy the music files if applicable and desired.
 IF NOT "%selected_version%" EQU "Multipatch" (
     CALL :CheckMusicFiles "%target%"
@@ -88,10 +95,10 @@ EXIT /b 0
     GOTO :ReinstallPrompt
 
 :MisplacedScript
+    ECHO/
     ECHO It appears this script was not placed within a TR2 installation root.
     ECHO This script should be in a folder called `tr2-version-swapper` along
-    ECHO with all of the other files in the archive; this folder should be in
-    ECHO the root of a TR2 installation.
+    ECHO with all of the other files in the archive.
     GOTO :ReinstallPrompt
 
 :MissingFiles
@@ -135,8 +142,15 @@ REM The named sections below are `CALL`ed and used like functions.
 :SetVariables
     IF "%~1" EQU "-v" (
         SET verbose=true
+        SET debug=false
     ) ELSE (
-        SET verbose=false
+        IF "%~1" EQU "-d" (
+            SET verbose=true
+            SET debug=true
+        ) ELSE (
+            SET verbose=false
+            SET debug=false
+        )
     )
     SET git_link=https://github.com/TombRunners/tr2-version-swapper
     SET install_link=https://github.com/TombRunners/tr2-version-swapper/releases
@@ -159,6 +173,7 @@ REM The named sections below are `CALL`ed and used like functions.
     REM `%~dp0` returns the batch file's absolute directory instead of working.
     SET "src=%~dp0"
     SET "music_fix=%src%music_fix"
+    SET "patch=%src%patch"
     REM No backslash is appended to version folders here, requiring manual
     REM placement elsewhere in the script. This is still preferred actually
     REM because having the backslash requires placing a leading dot "." at
@@ -176,7 +191,7 @@ REM The named sections below are `CALL`ed and used like functions.
     EXIT /b 0
 
 :PrintDirectories
-    ECHO Using the following directories: [-v]
+    ECHO Using the following directories:
     ECHO Game: "%target%"
     ECHO Script: "%src%"
     ECHO Music fix: "!music_fix!\"
