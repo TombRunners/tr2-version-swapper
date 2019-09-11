@@ -56,7 +56,34 @@ IF %verbose% EQU true ECHO/
 REM Copy the game files
 XCOPY "!folder[%index%]!" "%target%" /sy || GOTO :CopyError
 ECHO/
+ECHO === Success ===
 ECHO Version successfully swapped to "%selected_version%".
+ECHO ===============
+ECHO/
+
+REM Copy the patch file if present and desired.
+CALL :GetPatchInstallChoice
+IF !patch_choice! EQU 1 (
+    IF %debug% EQU true (
+        ECHO/
+        ECHO Looking for "!patch!\!patch_file!".
+    )
+    IF NOT EXIST "!patch!\!patch_file!" (
+        REM This is not a terminating GOTO section because the music fix can
+        REM still be successfully installed even if the patch cannot.
+        ECHO Unfortunately, the patch file was not found and thus it cannot be
+        ECHO installed with this script right now. Your other files are fine.
+        ECHO/
+    ) ELSE (
+        XCOPY "!patch!\!patch_file!" "!target!" /sy || CALL :PrintCopyErrorMessage
+        ECHO/
+        ECHO === Success ===
+        ECHO Patch successfully installed.
+        ECHO ===============
+    )
+) ELSE (
+    ECHO Skipping patch installation...
+)
 
 REM Copy the music files if applicable and desired.
 IF NOT "%selected_version%" EQU "Multipatch" (
@@ -71,13 +98,22 @@ IF NOT "%selected_version%" EQU "Multipatch" (
         IF !music_choice! EQU 1 (
             XCOPY "!music_fix!" "!target!" /sy || GOTO :CopyError
             ECHO/
+            ECHO === Success ===
             ECHO Music fix successfully installed. No need to uninstall or
             ECHO modify the relevant files for any future version switch.
+            ECHO ===============
+            ECHO/
+        ) ELSE (
+            ECHO Skipping music fix installation...
             ECHO/
         )
+    ) ELSE (
+        ECHO/
+        ECHO The music fix appears to be already installed.
+        ECHO/
     )
 )
-ECHO Run this script again anytime you wish to change the version.
+ECHO Run this script again anytime you wish to change or patch the version.
 CALL :PauseIfNeeded
 EXIT /b 0
 
@@ -95,7 +131,6 @@ EXIT /b 0
     GOTO :ReinstallPrompt
 
 :MisplacedScript
-    ECHO/
     ECHO It appears this script was not placed within a TR2 installation root.
     ECHO This script should be in a folder called `tr2-version-swapper` along
     ECHO with all of the other files in the archive.
@@ -118,8 +153,7 @@ EXIT /b 0
     EXIT /b 2
 
 :CopyError
-    ECHO `xcopy.exe` failed to complete successfully. Read the error message
-    ECHO  above to determine the state of your installation.
+    CALL :PrintCopyErrorMessage
     CALL :PauseIfNeeded
     EXIT /b 3
 
@@ -153,7 +187,7 @@ REM The named sections below are `CALL`ed and used like functions.
         )
     )
     SET git_link=https://github.com/TombRunners/tr2-version-swapper
-    SET install_link=https://github.com/TombRunners/tr2-version-swapper/releases
+    SET install_link=https://github.com/TombRunners/tr2-version-swapper/releases/latest
     SET "version_names[1]=Multipatch"
     SET "version_names[2]=Eidos Premier Collection"
     SET "version_names[3]=Eidos UK Box"
@@ -167,6 +201,7 @@ REM The named sections below are `CALL`ed and used like functions.
     SET music_files[2]=winmm.dll
     SET music_file_count=2
     SET music_track_count=61
+    SET patch_file=tomb2.exe
     EXIT /b 0
 
 :SetDirectories
@@ -207,14 +242,16 @@ REM The named sections below are `CALL`ed and used like functions.
     ECHO Welcome to the TR2 version swapper script!
     ECHO This script's code can be viewed/edited with a text editor.
     ECHO The official files with source control can be found here:
-    ECHO %git_link% && ECHO/
+    ECHO %git_link%
+    ECHO/
     ECHO ==== NOTICE ====
     ECHO This batch script assumes the distributed folder containing it resides
-    ECHO in a fresh TR2 Steam installation folder per the README. If placed
+    ECHO in a fresh TR2 Steam installation folder per the README. If installed
     ECHO incorrectly, the script may refuse to work, or do worse by erroneously
     ECHO proceeding if no problems are detected. Thus, it is asked that you be
     ECHO sure to leave the script and the accompanying game files untouched.
-    ECHO ================ && ECHO/
+    ECHO ================
+    ECHO/
     EXIT /b 0
 
 :GetSelectionIndex
@@ -226,6 +263,21 @@ REM The named sections below are `CALL`ed and used like functions.
     IF %index% GTR %version_count% GOTO :Prompt
     IF %index% LSS 1 GOTO :Prompt
     ECHO %index%
+    EXIT /b 0
+
+:PrintCopyErrorMessage
+    ECHO `xcopy.exe` failed to complete successfully. Read the error message
+    ECHO above to determine the state of your installation.
+    EXIT /b 0
+
+
+:GetPatchInstallChoice
+    SET /p patch_choice="Install CORE Patch 1? [0 = no, 1 = yes]: " < NUL
+    :PatchPrompt
+    CHOICE /c 0123456789 > NUL
+    SET /a "patch_choice=%ERRORLEVEL%-1"
+    IF %patch_choice% GTR 1 GOTO :PatchPrompt
+    ECHO %patch_choice%
     EXIT /b 0
 
 :PrintMusicInfo
