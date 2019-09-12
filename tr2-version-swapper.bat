@@ -20,7 +20,7 @@ IF %verbose% EQU true CALL :PrintDirectories
 REM Check that the parent folder has all the game files.
 FOR /L %%i IN (1,1,%file_count%) DO (
     SET "required_file=!files[%%i]!"
-    IF %debug% EQU true ECHO Looking for !required_file! in "%target%"
+    IF %debug% EQU true ECHO Looking for !required_file! in "%target%"...
     IF NOT EXIST "%target%!required_file!" GOTO :MisplacedScript
 )
 IF %debug% EQU true ECHO/
@@ -28,7 +28,7 @@ IF %debug% EQU true ECHO/
 REM Check that all version folders are present.
 FOR /L %%i IN (1,1,%version_count%) DO (
     SET "version_folder=!version_names[%%i]!"
-    IF %debug% EQU true ECHO Looking for "!version_folder!\" in "%src%"
+    IF %debug% EQU true ECHO Looking for "!version_folder!\" in "%src%versions\"...
     IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder
 )
 IF %verbose% EQU true ECHO/
@@ -62,27 +62,27 @@ ECHO ===============
 ECHO/
 
 REM Copy the patch file if present and desired.
-CALL :GetPatchInstallChoice
-IF !patch_choice! EQU 1 (
-    IF %debug% EQU true (
-        ECHO/
-        ECHO Looking for "!patch!\!patch_file!".
-    )
-    IF NOT EXIST "!patch!\!patch_file!" (
-        REM This is not a terminating GOTO section because the music fix can
-        REM still be successfully installed even if the patch cannot.
-        ECHO Unfortunately, the patch file was not found and thus it cannot be
-        ECHO installed with this script right now. Your other files are fine.
-        ECHO/
-    ) ELSE (
-        XCOPY "!patch!\!patch_file!" "!target!" /sy || CALL :PrintCopyErrorMessage
+SET "patch=!patch_folder!\!patch_file!"
+IF %debug% EQU true ECHO Looking for "%patch%".
+IF NOT EXIST "%patch%" (
+    REM This is not a terminating GOTO section because the music fix can
+    REM still be successfully installed even if the patch cannot.
+    ECHO Unfortunately, the patch file was not found and thus it cannot be
+    ECHO installed with this script right now. Your other files are fine.
+    ECHO/
+) ELSE (
+    CALL :GetPatchInstallChoice
+    IF !patch_choice! EQU 1 (
+        XCOPY "%patch%" "!target!" /sy || CALL :PrintCopyErrorMessage
         ECHO/
         ECHO === Success ===
         ECHO Patch successfully installed.
         ECHO ===============
+        ECHO/
+    ) ELSE (
+        ECHO Skipping patch installation...
+        ECHO/
     )
-) ELSE (
-    ECHO Skipping patch installation...
 )
 
 REM Copy the music files if applicable and desired.
@@ -108,7 +108,6 @@ IF NOT "%selected_version%" EQU "Multipatch" (
             ECHO/
         )
     ) ELSE (
-        ECHO/
         ECHO The music fix appears to be already installed.
         ECHO/
     )
@@ -127,7 +126,7 @@ EXIT /b 0
     EXIT /b 1
 
 :MissingFolder
-    ECHO Could not find a "!version_folder!" folder with the script.
+    ECHO Could not find a "!version_folder!" version folder with the script.
     GOTO :ReinstallPrompt
 
 :MisplacedScript
@@ -207,15 +206,15 @@ REM The named sections below are `CALL`ed and used like functions.
 :SetDirectories
     REM `%~dp0` returns the batch file's absolute directory instead of working.
     SET "src=%~dp0"
-    SET "music_fix=%src%music_fix"
-    SET "patch=%src%patch"
+    SET "music_fix=%src%utilities\music_fix"
+    SET "patch_folder=%src%utilities\patch"
     REM No backslash is appended to version folders here, requiring manual
     REM placement elsewhere in the script. This is still preferred actually
     REM because having the backslash requires placing a leading dot "." at
     REM the end of the `XCOPY` source parameter, which creates ugly output.
     REM For more information: https://stackoverflow.com/a/25841519/10466817
     FOR /L %%i IN (1,1,%version_count%) DO (
-        SET "folder[%%i]=%src%!version_names[%%i]!"
+        SET "folder[%%i]=%src%versions\!version_names[%%i]!"
     )
     CALL :GetParentDir target "%src%" "..\"
     EXIT /b 0
@@ -230,6 +229,7 @@ REM The named sections below are `CALL`ed and used like functions.
     ECHO Game: "%target%"
     ECHO Script: "%src%"
     ECHO Music fix: "!music_fix!\"
+    ECHO Patch: "!patch_folder!\"
     ECHO === Versions ===
     FOR /L %%i IN (1,1,%version_count%) DO (
         ECHO "!folder[%%i]!\"
@@ -281,7 +281,6 @@ REM The named sections below are `CALL`ed and used like functions.
     EXIT /b 0
 
 :PrintMusicInfo
-    ECHO/
     ECHO You switched to a non-Multipatch version. You may find that music no
     ECHO longer works, or that the game lags when loading music. There is a
     ECHO music fix available which should fix most music issues. You can learn
@@ -292,22 +291,35 @@ REM The named sections below are `CALL`ed and used like functions.
 :CheckMusicFiles
     REM Check that the folder has all DLLs.
     FOR /L %%i IN (1,1,%music_file_count%) DO (
-        IF NOT EXIST %1\!music_files[%%i]! GOTO :NotTrue
+        IF %debug% EQU true ECHO Looking for !music_files[%%i]! in "%~1"...
+        IF NOT EXIST "%~1\!music_files[%%i]!" GOTO :NotTrue
     )
+
     REM Check that the music folder has all music tracks.
     FOR /L %%i IN (1,1,%music_track_count%) DO (
+        REM Leading zeroes needed for one-digit numbers.
         IF %%i LEQ 9 (
             SET track=0%%i.wma
         ) ELSE (
             SET track=%%i.wma
         )
-        IF NOT EXIST %1\music\!track! GOTO :NotTrue
+        IF %debug% EQU true ECHO Looking for \music\!track! in "%~1"...
+        IF NOT EXIST "%~1\music\!track!" GOTO :NotTrue
     )
     SET music_fix_present=true
     GOTO :Exit
+
     :NotTrue
+    IF %verbose% EQU true (
+        ECHO Music fix file not found in "%~1".
+        ECHO/
+    )
     SET music_fix_present=false
+
     :Exit
+    IF %debug% EQU true (
+        IF %music_fix_present% EQU true ECHO/
+    )
     EXIT /b 0
 
 :GetMusicInstallChoice
