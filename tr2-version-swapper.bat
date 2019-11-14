@@ -270,9 +270,9 @@ REM The named sections below are `CALL`ed and used like functions.
     ECHO above to determine the state of your installation.
     EXIT /b 0
 
-
 :GetPatchInstallChoice
-    SET /p patch_choice="Install CORE Patch 1? [0 = no, 1 = yes]: " < NUL
+    ECHO (Optional) Install CORE's Patch 1? This is a separate EXE that is not required,
+    SET /p patch_choice="but may be used on top of English game versions. [0 = no, 1 = yes]: " < NUL
     :PatchPrompt
     CHOICE /c 0123456789 > NUL
     SET /a "patch_choice=%ERRORLEVEL%-1"
