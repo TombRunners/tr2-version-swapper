@@ -31,7 +31,10 @@ FOR /L %%i IN (1,1,%version_count%) DO (
     IF %debug% EQU true ECHO Looking for "!version_folder!\" in "%src%versions\"...
     IF NOT EXIST "!folder[%%i]!" GOTO :MissingFolder
 )
-IF %verbose% EQU true ECHO/
+IF %debug% EQU true ECHO/
+
+REM Ensure the game that will be overwritten is not running.
+CALL :Tomb2TaskCheck
 
 REM Start the script proper
 CALL :PrintIntroduction
@@ -221,36 +224,59 @@ REM The named sections below are `CALL`ed and used like functions.
 
 :GetParentDir
     REM See https://stackoverflow.com/questions/34942604/get-parent-directory-of-a-specific-path-in-batch-script
-    FOR %%I IN ("%~2\%~3") DO SET "%~1=%%~fI"
+    FOR %%A IN ("%~2\%~3") DO SET "%~1=%%~fA"
+    EXIT /b 0
+
+:Tomb2TaskCheck
+    IF %verbose% EQU true ECHO Checking for Tomb2 running in Game folder...
+    :TaskKillLoop
+    REM Read the output of WMIC thorugh file per https://www.dostips.com/forum/viewtopic.php?t=4490#p25709
+    REM Use 2>NUL to suppress the "No Instance(s) Available" output when no match is found.
+    2>NUL WMIC PROCESS WHERE NAME="!files[1]!" GET ExecutablePath,ProcessID /format:csv > file.tmp
+    FOR /F "SKIP=2 TOKENS=1,2 DELIMS=," %%i IN ('TYPE file.tmp') DO (
+        IF %debug% EQU true ECHO Found running Tomb2 at "%%j".
+        REM Flag /I runs a case-insensitive comparison.
+        IF /I "%%j" EQU "%target%!files[1]!" (
+            ECHO Tomb Raider II is currently being run from "%target%!files[1]!".
+            ECHO Please close this instance of the game, then use any key to continue.
+            ECHO Hint: You may need to kill a background task.
+            PAUSE
+            ECHO/
+            DEL file.tmp
+            GOTO :TaskKillLoop
+        )
+    )
+    IF %verbose% EQU true ECHO No match against "%target%!files[1]!". && ECHO/
+    DEL file.tmp
     EXIT /b 0
 
 :PrintDirectories
     ECHO Using the following directories:
+    ECHO =======================
     ECHO Game: "%target%"
     ECHO Script: "%src%"
+    ECHO === Utility Folders ===
     ECHO Music fix: "!music_fix!\"
     ECHO Patch: "!patch_folder!\"
-    ECHO === Versions ===
+    ECHO === Version Folders ===
     FOR /L %%i IN (1,1,%version_count%) DO (
         ECHO "!folder[%%i]!\"
     )
-    ECHO ================
+    ECHO =======================
     ECHO/
     EXIT /b 0
 
 :PrintIntroduction
-    ECHO Welcome to the TR2 version swapper script!
+    ECHO ======= WELCOME =======
+    ECHO Welcome to the TR2 version swapper script.
     ECHO This script's code can be viewed/edited with a text editor.
     ECHO The official files with source control can be found here:
     ECHO %git_link%
-    ECHO/
-    ECHO ==== NOTICE ====
-    ECHO This batch script assumes the distributed folder containing it resides
-    ECHO in a fresh TR2 Steam installation folder per the README. If installed
-    ECHO incorrectly, the script may refuse to work, or do worse by erroneously
-    ECHO proceeding if no problems are detected. Thus, it is asked that you be
-    ECHO sure to leave the script and the accompanying game files untouched.
-    ECHO ================
+    ECHO ======= CAUTION =======
+    ECHO This script assumes you followed INSTALLATION INSTRUCTIONS in HOW-TO-USE.txt.
+    ECHO If the script was installed incorrectly, it may refuse to work or it may
+    ECHO proceed with unpredictable outcomes and/or errors.
+    ECHO =======================
     ECHO/
     EXIT /b 0
 
@@ -332,7 +358,5 @@ REM The named sections below are `CALL`ed and used like functions.
     EXIT /b 0
 
 :PauseIfNeeded
-    IF %pause% EQU true (
-        PAUSE
-    )
+    IF %pause% EQU true PAUSE
     EXIT /b 0
