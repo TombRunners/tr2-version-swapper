@@ -11,8 +11,10 @@ IF "%console_mode%" EQU "" (
     )
 )
 
-REM Perform housekeeping and load variables.
-CALL :WritePermissionsCheck
+REM See https://stackoverflow.com/a/12264592/10466817.
+NET FILE 1>NUL 2>NUL & IF ERRORLEVEL 1 GOTO :InsufficientPermissions
+
+REM Load variables and directories.
 CALL :SetVariables %~1
 CALL :SetDirectories
 IF %verbose% EQU true CALL :PrintDirectories
@@ -122,9 +124,8 @@ EXIT /b 0
 
 
 :InsufficientPermissions
-    ECHO The script does not have permissions to write files/folders.
-    ECHO You can try running this script as admin as a workaround,
-    ECHO but most likely the problem is the game install location.
+    ECHO You must right-click and select "RUN AS ADMINISTRATOR" or run from
+    ECHO a CMD or PS with admin permissions to use this batch file.
     CALL :PauseIfNeeded
     EXIT /b 1
 
@@ -165,15 +166,6 @@ REM The named sections above are used as `GOTO`s and ultimately end the script.
 REM The named sections below are `CALL`ed and used like functions.
 
 
-
-:WritePermissionsCheck
-    COPY NUL foo > NUL
-    IF ERRORLEVEL 1 (
-        GOTO :InsufficientPermissions
-    ) ELSE (
-        DEL foo
-    )
-    EXIT /b 0
 
 :SetVariables
     IF "%~1" EQU "-v" (
@@ -268,7 +260,7 @@ REM The named sections below are `CALL`ed and used like functions.
 
 :PrintIntroduction
     ECHO ======= WELCOME =======
-    ECHO Welcome to the TR2 version swapper script.
+    ECHO Welcome to the TR2 version swapper script v2.1.0.
     ECHO This script's code can be viewed/edited with a text editor.
     ECHO The official files with source control can be found here:
     ECHO %git_link%
