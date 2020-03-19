@@ -2,7 +2,7 @@
 VERIFY ERRORS 2 > NUL
 SETLOCAL EnableDelayedExpansion
 
-REM See https://stackoverflow.com/a/36663349/10466817
+REM See https://stackoverflow.com/a/36663349/10466817.
 REM Note this gets "tricked" by PowerShell, but that's a fringe use case.
 IF "%console_mode%" EQU "" (
     SET pause=false
@@ -33,10 +33,10 @@ FOR /L %%i IN (1,1,%version_count%) DO (
 )
 IF %debug% EQU true ECHO/
 
-REM Ensure the game that will be overwritten is not running.
+REM Ensure the game whose files will be overwritten is not running.
 CALL :Tomb2TaskCheck
 
-REM Start the script proper
+REM Start the script proper.
 CALL :PrintIntroduction
 REM Get the user's version choice.
 ECHO Version list:
@@ -56,7 +56,7 @@ FOR /L %%i IN (1,1,%file_count%) DO (
 )
 IF %verbose% EQU true ECHO/
 
-REM Copy the game files
+REM Copy the game files.
 XCOPY "!folder[%index%]!" "%target%" /sy || GOTO :CopyError
 ECHO/
 ECHO === Success ===
@@ -215,7 +215,7 @@ REM The named sections below are `CALL`ed and used like functions.
     REM placement elsewhere in the script. This is still preferred actually
     REM because having the backslash requires placing a leading dot "." at
     REM the end of the `XCOPY` source parameter, which creates ugly output.
-    REM For more information: https://stackoverflow.com/a/25841519/10466817
+    REM See https://stackoverflow.com/a/25841519/10466817.
     FOR /L %%i IN (1,1,%version_count%) DO (
         SET "folder[%%i]=%src%versions\!version_names[%%i]!"
     )
@@ -223,14 +223,14 @@ REM The named sections below are `CALL`ed and used like functions.
     EXIT /b 0
 
 :GetParentDir
-    REM See https://stackoverflow.com/questions/34942604/get-parent-directory-of-a-specific-path-in-batch-script
+    REM See https://stackoverflow.com/a/34948844/10466817.
     FOR %%A IN ("%~2\%~3") DO SET "%~1=%%~fA"
     EXIT /b 0
 
 :Tomb2TaskCheck
     IF %verbose% EQU true ECHO Checking for Tomb2 running in Game folder...
     :TaskKillLoop
-    REM Read the output of WMIC thorugh file per https://www.dostips.com/forum/viewtopic.php?t=4490#p25709
+    REM Read the output of WMIC through a file per https://www.dostips.com/forum/viewtopic.php?t=4490#p25709.
     REM Use 2>NUL to suppress the "No Instance(s) Available" output when no match is found.
     2>NUL WMIC PROCESS WHERE NAME="!files[1]!" GET ExecutablePath,ProcessID /format:csv > file.tmp
     FOR /F "SKIP=2 TOKENS=1,2 DELIMS=," %%i IN ('TYPE file.tmp') DO (
@@ -281,7 +281,7 @@ REM The named sections below are `CALL`ed and used like functions.
     EXIT /b 0
 
 :GetSelectionIndex
-    REM Naturally, this hacky solution only works if `%version_count%` <= 9
+    REM Naturally, this hacky solution only works if `%version_count%` <= 9.
     SET /p index="Enter the number of your desired version: " < NUL
     :Prompt
     CHOICE /c 0123456789 > NUL
@@ -323,7 +323,7 @@ REM The named sections below are `CALL`ed and used like functions.
 
     REM Check that the music folder has all music tracks.
     FOR /L %%i IN (1,1,%music_track_count%) DO (
-        REM Leading zeroes needed for one-digit numbers.
+        REM Add leading zeroes to one-digit numbers.
         IF %%i LEQ 9 (
             SET track=0%%i.wma
         ) ELSE (
