@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TR2 Version Swapper": {
+      "commandName": "Project",
+      "commandLineArgs": "-v"
+    }
+  }
+}
