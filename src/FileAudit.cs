@@ -2,7 +2,7 @@
 {
     internal static class FileAudit
     {
-        public static readonly string[] GameFiles =
+        internal static readonly string[] GameFiles =
 {
             "tomb2.exe",
             "data/floating.tr2",
@@ -10,7 +10,14 @@
             "data/tombpc.dat"
         };
 
-        public static readonly string[] VersionFiles =
+        internal static readonly string[] VersionNames =
+        {
+            "Multipatch",
+            "Eidos Premier Collection",
+            "Eidos UK Box"
+        };
+
+        internal static readonly string[] VersionFiles =
         {
             "Multipatch/tomb2.exe",
             "Multipatch/data/floating.tr2",
@@ -26,7 +33,7 @@
             "Eidos UK Box/data/tombpc.dat"
         };
 
-        public static readonly string[] VersionFileHashes =
+        internal static readonly string[] VersionFileHashes =
         {
             // Multipatch
             "964f0c4e08ff44a905e8fc9a78f605dc", // tomb2.exe
@@ -42,77 +49,77 @@
             "12d56521ce038b55efba97463357a3d7", // tomb2.exe (With No-CD crack)
             "b8fc5d8444b15527cec447bc0387c41a", // data/floating.tr2
             "cdf5c232f71fe1d45b184c45252b6fb0", // data/title.pcx
-            "d48757da01f8642f1a3d82fae0fc99e4" // data/tombpc.dat
+            "d48757da01f8642f1a3d82fae0fc99e4"  // data/tombpc.dat
         };
 
-        public static readonly string[] MusicFiles =
+        internal static readonly string[] MusicFiles =
         {
-            "music_fix/fmodex.dll",
-            "music_fix/winmm.dll",
-            "music_fix/music/01.wma",
-            "music_fix/music/02.wma",
-            "music_fix/music/03.wma",
-            "music_fix/music/04.wma",
-            "music_fix/music/05.wma",
-            "music_fix/music/06.wma",
-            "music_fix/music/07.wma",
-            "music_fix/music/08.wma",
-            "music_fix/music/09.wma",
-            "music_fix/music/10.wma",
-            "music_fix/music/11.wma",
-            "music_fix/music/12.wma",
-            "music_fix/music/13.wma",
-            "music_fix/music/14.wma",
-            "music_fix/music/15.wma",
-            "music_fix/music/16.wma",
-            "music_fix/music/17.wma",
-            "music_fix/music/18.wma",
-            "music_fix/music/19.wma",
-            "music_fix/music/20.wma",
-            "music_fix/music/21.wma",
-            "music_fix/music/22.wma",
-            "music_fix/music/23.wma",
-            "music_fix/music/24.wma",
-            "music_fix/music/25.wma",
-            "music_fix/music/26.wma",
-            "music_fix/music/27.wma",
-            "music_fix/music/28.wma",
-            "music_fix/music/29.wma",
-            "music_fix/music/30.wma",
-            "music_fix/music/31.wma",
-            "music_fix/music/32.wma",
-            "music_fix/music/33.wma",
-            "music_fix/music/34.wma",
-            "music_fix/music/35.wma",
-            "music_fix/music/36.wma",
-            "music_fix/music/37.wma",
-            "music_fix/music/38.wma",
-            "music_fix/music/39.wma",
-            "music_fix/music/40.wma",
-            "music_fix/music/41.wma",
-            "music_fix/music/42.wma",
-            "music_fix/music/43.wma",
-            "music_fix/music/44.wma",
-            "music_fix/music/45.wma",
-            "music_fix/music/46.wma",
-            "music_fix/music/47.wma",
-            "music_fix/music/48.wma",
-            "music_fix/music/49.wma",
-            "music_fix/music/50.wma",
-            "music_fix/music/51.wma",
-            "music_fix/music/52.wma",
-            "music_fix/music/53.wma",
-            "music_fix/music/54.wma",
-            "music_fix/music/55.wma",
-            "music_fix/music/56.wma",
-            "music_fix/music/57.wma",
-            "music_fix/music/58.wma",
-            "music_fix/music/59.wma",
-            "music_fix/music/60.wma",
-            "music_fix/music/61.wma"
+            "fmodex.dll",
+            "winmm.dll",
+            "music/01.wma",
+            "music/02.wma",
+            "music/03.wma",
+            "music/04.wma",
+            "music/05.wma",
+            "music/06.wma",
+            "music/07.wma",
+            "music/08.wma",
+            "music/09.wma",
+            "music/10.wma",
+            "music/11.wma",
+            "music/12.wma",
+            "music/13.wma",
+            "music/14.wma",
+            "music/15.wma",
+            "music/16.wma",
+            "music/17.wma",
+            "music/18.wma",
+            "music/19.wma",
+            "music/20.wma",
+            "music/21.wma",
+            "music/22.wma",
+            "music/23.wma",
+            "music/24.wma",
+            "music/25.wma",
+            "music/26.wma",
+            "music/27.wma",
+            "music/28.wma",
+            "music/29.wma",
+            "music/30.wma",
+            "music/31.wma",
+            "music/32.wma",
+            "music/33.wma",
+            "music/34.wma",
+            "music/35.wma",
+            "music/36.wma",
+            "music/37.wma",
+            "music/38.wma",
+            "music/39.wma",
+            "music/40.wma",
+            "music/41.wma",
+            "music/42.wma",
+            "music/43.wma",
+            "music/44.wma",
+            "music/45.wma",
+            "music/46.wma",
+            "music/47.wma",
+            "music/48.wma",
+            "music/49.wma",
+            "music/50.wma",
+            "music/51.wma",
+            "music/52.wma",
+            "music/53.wma",
+            "music/54.wma",
+            "music/55.wma",
+            "music/56.wma",
+            "music/57.wma",
+            "music/58.wma",
+            "music/59.wma",
+            "music/60.wma",
+            "music/61.wma"
         };
 
-        public static readonly string[] MusicFileHashes =
+        internal static readonly string[] MusicFileHashes =
         {
             "a5106cf9d7371f842f500976692dd29e", // fmodex.dll
             "f683a8f1a309798ff75d11d65092315a", // winmm.dll
@@ -176,19 +183,19 @@
             "8ab107201a117caf1da9b572d0eb5836", // music/58.wma
             "b4af2d28449131ff6ba2f96f1c802958", // music/59.wma
             "b801e9250f7e73526ee08024063c8727", // music/60.wma
-            "590e72b218f5e8b48034e3541fe97c6d" // music/61.wma
+            "590e72b218f5e8b48034e3541fe97c6d"  // music/61.wma
         };
 
-        public static readonly string[] PatchFiles =
+        internal static readonly string[] PatchFiles =
         {
-            "patch/tr2p1readme.rtf",
-            "patch/tomb2.exe"
+            "tr2p1readme.rtf",
+            "tomb2.exe"
         };
-        
-        public static readonly string[] PatchFileHashes =
+
+        internal static readonly string[] PatchFileHashes =
         {
             "100439b46ecad0a318d757bb814ae890", // tr2p1readme.rtf
-            "39cab6b4ae3c761b67ae308a0ab22e44" // tomb2.exe (With No-CD crack)
+            "39cab6b4ae3c761b67ae308a0ab22e44"  // tomb2.exe (With No-CD crack)
         };
     }
 }

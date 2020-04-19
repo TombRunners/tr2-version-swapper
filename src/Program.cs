@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-
 using CommandLine;
 using CommandLine.Text;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
-using Octokit;
 
 using TR2_Version_Swapper.Utils;
 
@@ -17,56 +17,28 @@ namespace TR2_Version_Swapper
 {
     internal class Program
     {
-        private static readonly string[] AsciiArt =
-        {
-            @"    _______ _____  ___                     ",
-            @"   |__   __|  __ \|__ \                    ",
-            @"      | |  | |__) |  ) |                   ",
-            @"      | |  |  _  /  / /                    ",
-            @"      | |  | | \ \ / /_                    ",
-            @"__    |_|_ |_|  \_\____|                   ",
-            @"\ \    / /          (_)                    ",
-            @" \ \  / /__ _ __ ___ _  ___  _ __          ",
-            @"  \ \/ / _ \ '__/ __| |/ _ \| '_ \         ",
-            @"   \  /  __/ |  \__ \ | (_) | | | |        ",
-            @"  __\/_\___|_|  |___/_|\___/|_| |_|        ",
-            @" / ____|                                   ",
-            @"| (_____      ____ _ _ __  _ __   ___ _ __ ",
-            @" \___ \ \ /\ / / _` | '_ \| '_ \ / _ \ '__|",
-            @" ____) \ V  V / (_| | |_) | |_) |  __/ |   ",
-            @"|_____/ \_/\_/ \__,_| .__/| .__/ \___|_|   ",
-            @"                    | |   | |              ",
-            @"                    |_|   |_|              "
-        };
-
-        private const string RepoLink = "https://github.com/TombRunners/tr2-version-swapper/";
-        
-        private const string ReleaseLink = "https://github.com/TombRunners/tr2-version-swapper/releases/latest";
-
         private static readonly Logger NLogger = LogManager.GetCurrentClassLogger();
 
-        private class Options
+        private class Args
         {
             [Option('v', Default = false, HelpText = "Enable console logging.")]
             public bool Verbose { get; set; }
         }
+
+        private static int LogFileLimit;
 
         public static int Main(string[] args)
         {
             if (!InitializeProgram(args))
                 return 1;
 
-            bool fileDeleted = FileIo.DeleteExcessLogFiles();
-            if (fileDeleted)
-                NLogger.Info("Excess log file deleted.");
+            var versionSwapper = new VersionSwapper(NLogger);
+            versionSwapper.DeleteExcessLogFiles(LogFileLimit);
+            versionSwapper.VersionCheck();
 
-            VersionCheck();
-
-            var io = new InstallHelper(NLogger);
-            NLogger.Debug("Checking required files and install location...");
             try
             {
-                io.ValidateInstallation();
+                versionSwapper.ValidateInstallation();
             }
             catch (Exception e)
             {
@@ -76,20 +48,23 @@ namespace TR2_Version_Swapper
                 {
                     NLogger.Fatal(e, "Installation failed to validate.");
                     NLogger.Fatal(e.StackTrace);
-                    PrintInstallationInstructions(e);
-                    Console.ReadKey();
+                    PrettyPrint.WithColor(e.Message, ConsoleColor.Red);
+                    Console.WriteLine("You are advised to re-install the latest release to fix the issue:");
+                    Console.WriteLine(Info.ReleaseLink);
+                    Console.WriteLine("Press any key to exit...");
+                    Console.ReadKey(true);
                     return 2;
                 }
 
-                NLogger.Fatal(e, "An unexpected error occurred while validating the installation.");
+                NLogger.Fatal(e, "An unhandled error occurred while validating the installation.");
+                PrettyPrint.WithColor("An unhandled exception occurred while validating your installation.", ConsoleColor.Red);
+                Console.WriteLine("I've put some information about it in the log file.");
                 return -1;
             }
-            NLogger.Info("Required files found and install locations looks good.");
 
-            NLogger.Debug("Checking for a TR2 process running in the target folder...");
             try
             {
-                Process tr2Process = io.FindTr2RunningFromGameDir();
+                Process tr2Process = versionSwapper.FindTr2RunningFromGameDir();
                 if (tr2Process == null)
                 {
                     NLogger.Info("No TR2 processes running from the target folder.");
@@ -97,20 +72,20 @@ namespace TR2_Version_Swapper
                 else
                 {
                     NLogger.Debug("Found running TR2 process of concern.");
-                    io.HandleRunningTr2Game(tr2Process);
+                    versionSwapper.HandleRunningTr2Game(tr2Process);
                     NLogger.Info("Handled running TR2 processes.");
                 }
             }
             catch (Exception e)
             {
                 NLogger.Error(e, "An unexpected error occurred while trying to find running TR2 processes.");
-                PrettyPrint.WithColor("I was unable to finish searching for running TR2 process.", ConsoleColor.Yellow);
-                Console.WriteLine("Please note that a TR2 game or background task running from the target folder,");
+                PrettyPrint.WithColor("I was unable to finish searching for running TR2 processes.", ConsoleColor.Yellow);
+                Console.WriteLine("Please note that a TR2 game or background task running from the target folder");
                 Console.WriteLine("could cause issues with the program, such as preventing overwrites.");
-                Console.WriteLine("Double-check and be sure no such TR2 game or background task is running.");
+                Console.WriteLine("Double-check and make sure no TR2 game or background task is running.");
             }
 
-
+            versionSwapper.HandleMusicFix();
 
             Console.WriteLine("Press any key to exit.");
             Console.ReadKey(true);
@@ -118,49 +93,25 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Prints the splash screen and handles program arguments.
+        ///     Prints the splash screen, handles program arguments, creates a SIGINT hook.
         /// </summary>
         /// <param name="args">Program arguments</param>
-        /// <returns>True if the program can continue. False if args generated errors or if help/version was passed.</returns>
+        /// <returns>true if the program can continue, false if args generated errors or if help/version was requested.</returns>
         private static bool InitializeProgram(IEnumerable<string> args)
         {
-            // Ensure the program is readable and print the splash.
+            // Ensure the program is readable and print the intro splash.
             if (Console.WindowWidth < 81)
                 Console.WindowWidth = 81;
-            PrintIntroSplash();
+            foreach (string s in Info.AsciiArt) PrettyPrint.Center(s, ConsoleColor.DarkCyan);
+            PrettyPrint.Center("Made with love by Midge", ConsoleColor.DarkCyan);
+            PrettyPrint.Center($"Source code: {Info.RepoLink}");
 
-            // Parse arguments and propagate arguments..
+            // Parse and propagate arguments.
             var parser = new Parser(with => with.HelpWriter = null);
-            ParserResult<Options> parserResult = parser.ParseArguments<Options>(args);
+            ParserResult<Args> parserResult = parser.ParseArguments<Args>(args);
             parserResult
                 .WithParsed(ConfigLogger)
                 .WithNotParsed(errs => DisplayHelp(parserResult, errs));
-            return parserResult.Tag == ParserResultType.Parsed;
-        }
-
-        private static void ConfigLogger(Options opts)
-        {
-            LogLevel consoleLogLevel = opts.Verbose ? LogLevel.Info : LogLevel.Off;
-
-            var config = new LoggingConfiguration();
-
-            // Configure the targets and rules.
-            var consoleTarget = new ConsoleTarget
-            {
-                Layout = "${uppercase:${level}}: ${message} ${exception}"
-            };
-            config.AddRule(consoleLogLevel, LogLevel.Error, consoleTarget);
-            var fileTarget = new FileTarget
-            {
-                FileName = Path.Combine("logs", typeof(Program).FullName + "." + DateTime.Now.ToString("s") + ".log"),
-                Layout = "${longdate} | ${stacktrace} | ${uppercase:${level}} | ${message} ${exception}"
-            };
-            config.AddRule(LogLevel.Debug, LogLevel.Fatal, fileTarget);
-
-            // Set and load the configuration.
-            LogManager.Configuration = config;
-            LogManager.ReconfigExistingLoggers();
-            NLogger.Info("Verbose mode activated.");
 
             // Create a hook to handle SIGINT (CTRL + C).
             Console.CancelKeyPress += delegate {
@@ -168,6 +119,42 @@ namespace TR2_Version_Swapper
                 PrettyPrint.WithColor(
                     "Received SIGINT. It's up to you to know the current state of your game!", ConsoleColor.Yellow);
             };
+
+            // Apply settings from appsettings.json.
+            IConfiguration config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false)
+                .Build();
+            if (!int.TryParse(config["LogFileLimit"], out LogFileLimit))
+            {
+                LogFileLimit = 10;
+                PrettyPrint.WithColor("Unable to read the numeric value \"LogFileLimit\" from appsettings.json", ConsoleColor.Yellow);
+                Console.WriteLine("To fix this, you need to edit the number to be an integer without quotes.");
+                return false;
+            }
+
+            return parserResult.Tag == ParserResultType.Parsed;
+        }
+
+        private static void ConfigLogger(Args opts)
+        {
+            LogLevel consoleLogLevel = opts.Verbose ? LogLevel.Info : LogLevel.Off;
+            var config = new LoggingConfiguration();
+
+            // Configure the targets and rules.
+            var consoleTarget = new ConsoleTarget();
+            consoleTarget.Layout = "${uppercase:${level}}: ${message} ${exception}";
+            config.AddRule(consoleLogLevel, LogLevel.Error, consoleTarget);
+
+            var fileTarget = new FileTarget();
+            fileTarget.FileName = Path.Combine("logs", typeof(Program).FullName + "." + DateTime.Now.ToString("s") + ".log");
+            fileTarget.Layout = "${longdate} | ${stacktrace} | ${uppercase:${level}} | ${message} ${exception}";
+            config.AddRule(LogLevel.Debug, LogLevel.Fatal, fileTarget);
+
+            // Set and load the configuration.
+            LogManager.Configuration = config;
+            LogManager.ReconfigExistingLoggers();
+            NLogger.Info("Verbose mode activated.");
         }
 
         private static void DisplayHelp<T>(ParserResult<T> result, IEnumerable<Error> errs)
@@ -190,59 +177,5 @@ namespace TR2_Version_Swapper
             Console.WriteLine(helpText);
         }
 
-        private static void PrintIntroSplash()
-        {
-            foreach (string s in AsciiArt) PrettyPrint.Center(s, ConsoleColor.DarkCyan);
-            PrettyPrint.Center("Made with love by Midge", ConsoleColor.DarkCyan);
-            PrettyPrint.Center($"Source code: {RepoLink}");
-        }
-
-        /// <summary>
-        ///     Notifies the user if their program is outdated.
-        /// </summary>
-        private static void VersionCheck()
-        {
-            NLogger.Debug("Running Github Version checks...");
-            Version current = typeof(Program).Assembly.GetName().Version;
-            try
-            {
-                Version latest = Github.GetLatestRelease().GetAwaiter().GetResult();
-                int result = current.CompareTo(latest, 3);
-
-                if (result == -1)
-                {
-                    NLogger.Debug($"Latest Github release ({latest}) is newer than the running version ({result}).");
-                    PrettyPrint.Header("A new release is available!", ReleaseLink, ConsoleColor.Green);
-                    Console.WriteLine("You are strongly advised to update to ensure leaderboard compatibility:");
-                }
-                else if (result == 0)
-                {
-                    NLogger.Debug($"Version is up-to-date ({latest}).");
-                }
-                else // result == 1
-                {
-                    NLogger.Debug($"Running version ({current}) has not yet been released on Github ({latest}).");
-                    Console.WriteLine("You seem to be running a pre-release version.");
-                    Console.WriteLine("Let me know how testing goes! :D");
-                }
-            }
-            catch (ApiException e)
-            {
-                NLogger.Error(e, "Github request failed.");
-                Console.WriteLine("Unable to check for the latest version. Consider manually checking:");
-                Console.WriteLine(ReleaseLink);
-            }
-            finally
-            {
-                Console.WriteLine();
-            }
-        }
-
-        private static void PrintInstallationInstructions(Exception e)
-        {
-            PrettyPrint.WithColor(e.Message, ConsoleColor.Red);
-            Console.WriteLine("You are advised to re-install the latest release to fix the issue:");
-            Console.WriteLine(ReleaseLink);
-        }
     }
 }

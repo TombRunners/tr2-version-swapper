@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.IO;
+using System.Security.Cryptography;
 
 namespace TR2_Version_Swapper.Utils
 {
@@ -36,20 +37,31 @@ namespace TR2_Version_Swapper.Utils
         }
 
         /// <summary>
-        ///     Deletes the oldest log file to prevent unnecessary bloat.
+        ///     Computes a given file's MD5 hash.
         /// </summary>
-        /// <returns>True if a file was deleted.</returns>
-        public static bool DeleteExcessLogFiles()
+        /// <param name="file"></param>
+        /// <returns>The file's MD5 hash.</returns>
+        public static string ComputeMd5Hash(string file)
         {
-            string dir = Path.Combine(Directory.GetCurrentDirectory(), "logs");
-            var files = new List<string>(Directory.GetFiles(dir));
-            if (files.Count > 10)
+            FileStream fs = null;
+            byte[] hash = null;
+            try
             {
-                files.Sort();
-                File.Delete(files[0]);
-                return true;
+                fs = new FileStream(file, FileMode.Open);
+                using var md5 = MD5.Create();
+                hash = md5.ComputeHash(fs);
             }
-            return false;
+            catch (IOException e)
+            {
+                if (e is DirectoryNotFoundException || e is FileNotFoundException)
+                    throw new RequiredFileMissingException($"File \"{file}\" not found!", e);
+            }
+            finally
+            {
+                fs?.Close();
+            }
+
+            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
     }
 }
