@@ -9,6 +9,7 @@ namespace TR2_Version_Swapper.Utils
         ///     results when comparing a version with no revision number to a version with a revision number, etc.
         ///     With this, you specify up-front how many of the version's numbers to compare.
         /// </summary>
+        /// <returns>-1 if `this` is less, 0 if equal, 1 if `this` is greater</returns>
         /// <remarks>
         ///     Credits: https://stackoverflow.com/a/28695949/10466817
         /// </remarks>

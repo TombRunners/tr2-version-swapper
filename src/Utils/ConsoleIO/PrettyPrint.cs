@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TR2_Version_Swapper.Utils
+namespace TR2_Version_Swapper.Utils.ConsoleIO
 {
     /// <summary>
     ///     Provides some pretty-printing functionality.

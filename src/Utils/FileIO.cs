@@ -1,38 +1,47 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 
 namespace TR2_Version_Swapper.Utils
 {
     /// <summary>
-    ///     Provides utility filesystem functions.
+    ///     Provides utility filesystem functionality.
     /// </summary>
     public static class FileIo
     {
         /// <summary>
         ///     Recursively copies from source to destination, overwriting if applicable.
         /// </summary>
-        /// <param name="sourceDirName"></param>
-        /// <param name="destDirName"></param>
-        public static void CopyRecursively(string sourceDirName, string destDirName)
+        /// <param name="sourceDir">Source directory</param>
+        /// <param name="destDir">Destination directory</param>
+        /// <param name="recursive">Whether or not to copy subdirectories within</param>
+        /// <remarks>
+        ///     See MSDN: https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
+        /// </remarks>
+        public static void CopyDirectory(string sourceDir, string destDir, bool recursive)
         {
             // Get the directory's files and subdirectories.
-            var dir = new DirectoryInfo(sourceDirName);
+            var dir = new DirectoryInfo(sourceDir);
             DirectoryInfo[] subDirs = dir.GetDirectories();
             FileInfo[] files = dir.GetFiles();
             
             // Copy the files in the directory.
             foreach (FileInfo file in files)
             {
-                string destPath = Path.Combine(destDirName, file.Name);
-                file.CopyTo(destPath, true);
+                string destPath = Path.Combine(destDir, file.Name);
+                file.CopyTo(destPath, overwrite: true);
             }
 
             // Recursively call this function to copy subdirectories.
-            foreach (DirectoryInfo subDir in subDirs)
+            if (recursive)
             {
-                string destPath = Path.Combine(destDirName, subDir.Name);
-                CopyRecursively(subDir.FullName, destPath);
+                foreach (DirectoryInfo subDir in subDirs)
+                {
+                    string destPath = Path.Combine(destDir, subDir.Name);
+                    CopyDirectory(subDir.FullName, destPath, true);
+                }
             }
         }
 
@@ -40,28 +49,39 @@ namespace TR2_Version_Swapper.Utils
         ///     Computes a given file's MD5 hash.
         /// </summary>
         /// <param name="file"></param>
-        /// <returns>The file's MD5 hash.</returns>
+        /// <returns>The file's MD5 hash</returns>
+        /// <exception cref="FileNotFoundException">File that needs to be checked is missing.</exception>
         public static string ComputeMd5Hash(string file)
         {
             FileStream fs = null;
-            byte[] hash = null;
             try
             {
                 fs = new FileStream(file, FileMode.Open);
                 using var md5 = MD5.Create();
-                hash = md5.ComputeHash(fs);
+                byte[] hash = md5.ComputeHash(fs);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }
             catch (IOException e)
             {
                 if (e is DirectoryNotFoundException || e is FileNotFoundException)
-                    throw new RequiredFileMissingException($"File \"{file}\" not found!", e);
+                    throw new FileNotFoundException($"File \"{file}\" not found!", e);
             }
             finally
             {
                 fs?.Close();
             }
+            return null;
+        }
 
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        /// <summary>
+        ///     Checks that all fileNames exist in dir.
+        /// </summary>
+        /// <param name="fileNames">File names to check for</param>
+        /// <param name="dir">Directory to operate within</param>
+        /// <returns>The name of the first missing file or null if no missing files are found</returns>
+        public static string FindMissingFile(IEnumerable<string> fileNames, string dir)
+        {
+            return fileNames.Select(file => Path.Combine(dir, file)).FirstOrDefault(path => !File.Exists(path));
         }
     }
 }
