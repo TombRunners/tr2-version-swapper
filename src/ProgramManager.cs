@@ -13,7 +13,6 @@ using NLog.Targets;
 using Octokit;
 
 using TR2_Version_Swapper.Utils;
-using TR2_Version_Swapper.Utils.ConsoleIO;
 
 namespace TR2_Version_Swapper
 {
@@ -71,9 +70,9 @@ namespace TR2_Version_Swapper
         {
             if (Console.WindowWidth < 81)
                 Console.WindowWidth = 81;
-            foreach (string s in Info.AsciiArt) PrettyPrint.Center(s, ConsoleColor.DarkCyan);
-            PrettyPrint.Center("Made with love by Midge", ConsoleColor.DarkCyan);
-            PrettyPrint.Center($"Source code: {Info.RepoLink}");
+            foreach (string s in Info.AsciiArt) ConsoleIO.PrintCentered(s, ConsoleColor.DarkCyan);
+            ConsoleIO.PrintCentered("Made with love by Midge", ConsoleColor.DarkCyan);
+            ConsoleIO.PrintCentered($"Source code: {Info.RepoLink}");
         }
 
         /// <summary>
@@ -148,7 +147,7 @@ namespace TR2_Version_Swapper
         {
             Console.CancelKeyPress += delegate {
                 Program.NLogger.Debug("User gave SIGINT. Ending Program.");
-                PrettyPrint.WithColor(
+                ConsoleIO.PrintWithColor(
                     "Received SIGINT. It's up to you to know the current state of your game!", ConsoleColor.Yellow);
             };
         }
@@ -167,7 +166,7 @@ namespace TR2_Version_Swapper
             if (!int.TryParse(config["LogFileLimit"], out Program.LogFileLimit))
             {
                 Program.LogFileLimit = 10;
-                PrettyPrint.WithColor("Unable to read the numeric value \"LogFileLimit\" from appsettings.json", ConsoleColor.Yellow);
+                ConsoleIO.PrintWithColor("Unable to read the numeric value \"LogFileLimit\" from appsettings.json", ConsoleColor.Yellow);
                 Console.WriteLine("To fix this, you need to edit the number to be an integer without quotes.");
                 return false;
             }
@@ -204,14 +203,14 @@ namespace TR2_Version_Swapper
             if (files.Count > Program.LogFileLimit)
             {
                 Program.NLogger.Debug($"Excessive log file count: {fileCount} vs {Program.LogFileLimit}");
-                PrettyPrint.WithColor($"Log file limit of {fileCount} exceeded (total: {Program.LogFileLimit})", ConsoleColor.Yellow);
+                ConsoleIO.PrintWithColor($"Log file limit of {fileCount} exceeded (total: {Program.LogFileLimit})", ConsoleColor.Yellow);
                 Console.WriteLine("Files will be deleted accordingly.");
                 Console.WriteLine();
             }
             else if (files.Count + 3 > Program.LogFileLimit)
             {
                 Program.NLogger.Debug($"Log file count approaching excessive: {fileCount} vs {Program.LogFileLimit}");
-                PrettyPrint.WithColor($"You are approaching your set log file limit ({fileCount} of {Program.LogFileLimit})", ConsoleColor.Yellow);
+                ConsoleIO.PrintWithColor($"You are approaching your set log file limit ({fileCount} of {Program.LogFileLimit})", ConsoleColor.Yellow);
                 Console.WriteLine("Be sure to edit appsettings.json to adjust the limit to your tastes.");
                 Console.WriteLine();
             }
@@ -226,7 +225,7 @@ namespace TR2_Version_Swapper
                 catch (Exception e)
                 {
                     Program.NLogger.Error(e, "Could not delete at least one excess log file.");
-                    PrettyPrint.WithColor($"You have more than your setting of {Program.LogFileLimit} log files in the logs folder.", ConsoleColor.Yellow);
+                    ConsoleIO.PrintWithColor($"You have more than your setting of {Program.LogFileLimit} log files in the logs folder.", ConsoleColor.Yellow);
                     Console.WriteLine("Normally I'd take care of this for you but I had an unexpected error.");
                     Console.WriteLine("I've put some information about it in the log file.");
                     Console.WriteLine();
@@ -252,7 +251,7 @@ namespace TR2_Version_Swapper
                 if (result == -1)
                 {
                     Program.NLogger.Debug($"Latest Github release ({latest}) is newer than the running version ({result}).");
-                    PrettyPrint.Header("A new release is available!", Info.ReleaseLink, ConsoleColor.Green);
+                    ConsoleIO.PrintHeader("A new release is available!", Info.ReleaseLink, ConsoleColor.Green);
                     Console.WriteLine("You are strongly advised to update to ensure leaderboard compatibility:");
                 }
                 else if (result == 0)
@@ -269,7 +268,7 @@ namespace TR2_Version_Swapper
             catch (ApiException e)
             {
                 Program.NLogger.Error(e, "Github request failed.");
-                PrettyPrint.WithColor("Unable to check for the latest version. Consider manually checking:", ConsoleColor.Yellow);
+                ConsoleIO.PrintWithColor("Unable to check for the latest version. Consider manually checking:", ConsoleColor.Yellow);
                 Console.WriteLine(Info.ReleaseLink);
             }
             finally
@@ -309,7 +308,7 @@ namespace TR2_Version_Swapper
         /// <exception cref="BadInstallationLocationException">Targeted directory is missing a file or folder</exception>
         private static void CheckGameDirLooksLikeATr2Install()
         {
-            string missingFile = FileIo.FindMissingFile(FileAudit.GameFiles, Program.Directories.Game);
+            string missingFile = FileIO.FindMissingFile(FileAudit.GameFiles, Program.Directories.Game);
             if (string.IsNullOrEmpty(missingFile))
                 throw new BadInstallationLocationException($"Parent folder is missing game file {missingFile}, cannot be a TR2 installation.");
             if (!Directory.Exists(Path.Combine(Program.Directories.Game, "music")))
@@ -329,7 +328,7 @@ namespace TR2_Version_Swapper
             {
                 try
                 {
-                    string hash = FileIo.ComputeMd5Hash(Path.Combine(dir, file));
+                    string hash = FileIO.ComputeMd5Hash(Path.Combine(dir, file));
                     if (hash != requiredHash)
                     {
                         throw new InvalidGameFileException(
@@ -366,7 +365,7 @@ namespace TR2_Version_Swapper
             catch (Exception e)
             {
                 Program.NLogger.Error(e, "An unexpected error occurred while trying to find running TR2 processes.");
-                PrettyPrint.WithColor("I was unable to finish searching for running TR2 processes.", ConsoleColor.Yellow);
+                ConsoleIO.PrintWithColor("I was unable to finish searching for running TR2 processes.", ConsoleColor.Yellow);
                 Console.WriteLine("Please note that a TR2 game or background task running from the target folder");
                 Console.WriteLine("could cause issues with the program, such as preventing overwrites.");
                 Console.WriteLine("Double-check and make sure no TR2 game or background task is running.");
@@ -397,11 +396,11 @@ namespace TR2_Version_Swapper
         private static void KillRunningTr2Game(Process p)
         {
             Program.NLogger.Debug($"Found a TR2 process running from target folder. Name: { p.ProcessName} | ID: { p.Id} | Start time: { p.StartTime.TimeOfDay}");
-            PrettyPrint.WithColor("TR2 is running from the target folder.", ConsoleColor.Yellow);
-            PrettyPrint.WithColor($"Name: {p.ProcessName} | ID: {p.Id} | Start time: {p.StartTime.TimeOfDay}");
+            ConsoleIO.PrintWithColor("TR2 is running from the target folder.", ConsoleColor.Yellow);
+            ConsoleIO.PrintWithColor($"Name: {p.ProcessName} | ID: {p.Id} | Start time: {p.StartTime.TimeOfDay}");
             Console.WriteLine("Would you like me to end the task for you? If not, I will give a message");
             Console.Write("describing how to find and close it. Type \"y\" to have me kill the task: ");
-            bool userResponse = Input.UserPromptYesNo();
+            bool userResponse = ConsoleIO.UserPromptYesNo();
             if (userResponse)
             {
                 Program.NLogger.Debug($"User is allowing the program to kill the running TR2 task.");
@@ -412,7 +411,7 @@ namespace TR2_Version_Swapper
                 catch (Exception e)
                 {
                     Program.NLogger.Error(e, "An unexpected error occurred while trying to kill a running TR2 process.");
-                    PrettyPrint.WithColor("I was unable to kill the TR2 process. You will have to do it yourself.", ConsoleColor.Yellow);
+                    ConsoleIO.PrintWithColor("I was unable to kill the TR2 process. You will have to do it yourself.", ConsoleColor.Yellow);
                 }
             }
             else

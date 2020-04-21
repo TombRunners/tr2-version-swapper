@@ -1,7 +1,6 @@
 ﻿using System;
 
 using TR2_Version_Swapper.Utils;
-using TR2_Version_Swapper.Utils.ConsoleIO;
 
 namespace TR2_Version_Swapper
 {
@@ -17,7 +16,7 @@ namespace TR2_Version_Swapper
             if (IsMusicFixInstalled())
             {
                 Program.NLogger.Debug("Music fix is already installed. Reminding the user they have it installed.");
-                PrettyPrint.Header("You already have the music fix installed.", "Skipping music fix installation...");
+                ConsoleIO.PrintHeader("You already have the music fix installed.", "Skipping music fix installation...");
                 Console.WriteLine();
             }
             else
@@ -30,18 +29,18 @@ namespace TR2_Version_Swapper
                 Console.WriteLine("run this program and select a version, I will check for the fix and ask again");
                 Console.WriteLine("if you want to install it. The fix applies to all versions the same, so it only");
                 Console.Write("needs to be installed once. "); // Omit '\n' and leave space for clean same-line prompt.
-                bool installFix = Input.UserPromptYesNo();
+                bool installFix = ConsoleIO.UserPromptYesNo();
                 if (installFix)
                 {
                     Program.NLogger.Debug("User wants the music fix installed.");
-                    FileIo.CopyDirectory(Program.Directories.MusicFix, Program.Directories.Game, true);
+                    FileIO.CopyDirectory(Program.Directories.MusicFix, Program.Directories.Game, true);
                     Program.NLogger.Info("Installed music fix.");
-                    PrettyPrint.Header("Music fix successfully installed!", foregroundColor: ConsoleColor.DarkGreen);
+                    ConsoleIO.PrintHeader("Music fix successfully installed!", foregroundColor: ConsoleColor.DarkGreen);
                 }
                 else
                 {
                     Program.NLogger.Debug("User declined the music fix installation.");
-                    PrettyPrint.Header("Skipping music fix.", "I'll ask again next time.", ConsoleColor.White);
+                    ConsoleIO.PrintHeader("Skipping music fix.", "I'll ask again next time.", ConsoleColor.White);
                 }
             }
         }
@@ -54,7 +53,7 @@ namespace TR2_Version_Swapper
         {
             try
             {
-                FileIo.FindMissingFile(FileAudit.MusicFilesAudit.Keys, Program.Directories.Game);
+                FileIO.FindMissingFile(FileAudit.MusicFilesAudit.Keys, Program.Directories.Game);
             }
             catch (RequiredFileMissingException)
             {

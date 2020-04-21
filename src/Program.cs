@@ -1,16 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using CommandLine;
-using CommandLine.Text;
-using Microsoft.Extensions.Configuration;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
 
+using NLog;
 using TR2_Version_Swapper.Utils;
-using TR2_Version_Swapper.Utils.ConsoleIO;
 
 
 namespace TR2_Version_Swapper
@@ -43,7 +34,7 @@ namespace TR2_Version_Swapper
                     e is InvalidGameFileException)
                 {
                     NLogger.Fatal($"Installation failed to validate. {e.Message}\n{e.StackTrace}");
-                    PrettyPrint.WithColor(e.Message, ConsoleColor.Red);
+                    ConsoleIO.PrintWithColor(e.Message, ConsoleColor.Red);
                     Console.WriteLine("You are advised to re-install the latest release to fix the issue:");
                     Console.WriteLine(Info.ReleaseLink);
                     Console.WriteLine("Press any key to exit...");
@@ -52,7 +43,7 @@ namespace TR2_Version_Swapper
                 }
 
                 NLogger.Fatal($"An unhandled exception occurred while validating the installation. {e.Message}\n{e.StackTrace}");
-                PrettyPrint.WithColor("An unhandled exception occurred while validating your installation.", ConsoleColor.Red);
+                ConsoleIO.PrintWithColor("An unhandled exception occurred while validating your installation.", ConsoleColor.Red);
                 Console.WriteLine("I've put some information about it in the log file.");
                 return -1;
             }
@@ -61,7 +52,7 @@ namespace TR2_Version_Swapper
             VersionSwapper.HandleMusicFix();
             // TODO: VersionSwapper.HandlePatchInstallation();
 
-            Console.WriteLine("Press any key to exit.");
+            Console.WriteLine("Press any key to exit...");
             Console.ReadKey(true);
             return 0;
         }

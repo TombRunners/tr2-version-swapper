@@ -9,14 +9,14 @@ namespace TR2_Version_Swapper.Utils
     /// <summary>
     ///     Provides utility filesystem functionality.
     /// </summary>
-    public static class FileIo
+    public static class FileIO
     {
         /// <summary>
-        ///     Recursively copies from source to destination, overwriting if applicable.
+        ///     Copies from source to destination, overwriting if applicable.
         /// </summary>
         /// <param name="sourceDir">Source directory</param>
         /// <param name="destDir">Destination directory</param>
-        /// <param name="recursive">Whether or not to copy subdirectories within</param>
+        /// <param name="recursive">Whether or not to copy subdirectories</param>
         /// <remarks>
         ///     See MSDN: https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-copy-directories
         /// </remarks>
