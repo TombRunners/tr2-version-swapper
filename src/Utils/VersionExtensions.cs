@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TR2_Version_Swapper.Utils
+namespace Utils
 {
     public static class VersionExtensions
     {

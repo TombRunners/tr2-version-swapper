@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 
-namespace TR2_Version_Swapper.Utils
+namespace Utils
 {
     /// <summary>
     ///     Provides utility filesystem functionality.
@@ -50,7 +50,7 @@ namespace TR2_Version_Swapper.Utils
         /// </summary>
         /// <param name="file"></param>
         /// <returns>The file's MD5 hash</returns>
-        /// <exception cref="FileNotFoundException">File that needs to be checked is missing.</exception>
+        /// <exception cref="System.IO.FileNotFoundException">File that needs to be checked is missing.</exception>
         public static string ComputeMd5Hash(string file)
         {
             FileStream fs = null;
@@ -70,6 +70,7 @@ namespace TR2_Version_Swapper.Utils
             {
                 fs?.Close();
             }
+
             return null;
         }
 
@@ -78,7 +79,7 @@ namespace TR2_Version_Swapper.Utils
         /// </summary>
         /// <param name="fileNames">File names to check for</param>
         /// <param name="dir">Directory to operate within</param>
-        /// <returns>The name of the first missing file or null if no missing files are found</returns>
+        /// <returns>The name of the first missing file or null if no files are missing</returns>
         public static string FindMissingFile(IEnumerable<string> fileNames, string dir)
         {
             return fileNames.Select(file => Path.Combine(dir, file)).FirstOrDefault(path => !File.Exists(path));

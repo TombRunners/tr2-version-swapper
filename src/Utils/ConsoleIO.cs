@@ -1,23 +1,26 @@
 ﻿using System;
 
-namespace TR2_Version_Swapper.Utils
+namespace Utils
 {
     public static class ConsoleIO
     {
         /// <summary>
-        ///     Prompts and evaluates user response to yes/no.
+        ///     Gives a yes/no prompt and evaluates user response.
         /// </summary>
         /// <returns>True if yes/y, false if no/n</returns>
-        public static bool UserPromptYesNo()
+        public static bool UserPromptYesNo(string promptText = "")
         {
+            if (string.IsNullOrEmpty(promptText))
+                promptText = "Yes or no? [y/n]: ";
+
             bool value = false;
             bool validInput = false;
             while (!validInput)
             {
-                Console.Write("Yes or no? [y/n]: ");
+                Console.Write(promptText);
                 string inputString = Console.ReadLine();
                 Console.WriteLine();
-                if (!String.IsNullOrEmpty(inputString))
+                if (!string.IsNullOrEmpty(inputString))
                 {
                     inputString = inputString.ToLower();
                     if (inputString == "yes" || inputString == "y")
@@ -36,7 +39,7 @@ namespace TR2_Version_Swapper.Utils
         }
 
         /// <summary>
-        ///     Prints an application header, and sets the console title
+        ///     Pretty-prints a colored header sized printWidth wide.
         /// </summary>
         /// <param name="title">Header title</param>
         /// <param name="subtitle">Header subtitle</param>
@@ -50,23 +53,22 @@ namespace TR2_Version_Swapper.Utils
             ConsoleColor foregroundColor = ConsoleColor.Gray,
             int printWidth = 80)
         {
-            Console.Title = title + (subtitle != "" ? $" ({subtitle})" : "");
             string titleContent = HeaderHelper(title, "║");
             string subtitleContent = HeaderHelper(subtitle, "║");
             string borderLine = new string('═', printWidth - 2);
-
             Console.ForegroundColor = foregroundColor;
-            Console.WriteLine($"╔{borderLine}╗");
-            Console.WriteLine(titleContent);
-            if (!String.IsNullOrEmpty(subtitle))
-                Console.WriteLine(subtitleContent);
-            Console.WriteLine($"╚{borderLine}╝");
+
+            Console.WriteLine($"╔{borderLine}╗");   // Top border
+            Console.WriteLine(titleContent);        // First line
+            if (!string.IsNullOrEmpty(subtitle))
+                Console.WriteLine(subtitleContent); // Second line
+            Console.WriteLine($"╚{borderLine}╝");   // Bottom border
             Console.ResetColor();
         }
 
         /// <summary>
-        ///     Returns text centered over printWidth, with edgeString on the left and right edges.
-        ///     If text is too wide, it is returned with only a space between text and edgeString.
+        ///     Returns text centered over printWidth with edgeString on each side.
+        ///     If the text is too wide, it is returned with only a space between text and edgeString.
         /// </summary>
         /// <param name="text">Text to center</param>
         /// <param name="edgeString">Left and right edge text, default is none</param>
@@ -77,7 +79,7 @@ namespace TR2_Version_Swapper.Utils
             int width = printWidth - 2 * edgeString.Length;
             if (width < text.Length)
                 return $"{edgeString} {text} {edgeString}";
-            return String.Format(
+            return string.Format(
                 $"{edgeString}{{0,{width / 2 + text.Length / 2}}}{{1,{width - width / 2 - text.Length / 2 + edgeString.Length}}}",
                 text,
                 edgeString
@@ -85,7 +87,7 @@ namespace TR2_Version_Swapper.Utils
         }
 
         /// <summary>
-        ///     Print a one-line banner from the given text. If it is too wide, it is printed normally.
+        ///     Print a one-line banner from the given text. Prints normally if the text is too wide.
         /// </summary>
         /// <param name="text">Text to print</param>
         /// <param name="foregroundColor">Foreground color</param>
@@ -96,7 +98,7 @@ namespace TR2_Version_Swapper.Utils
         }
 
         /// <summary>
-        ///     Performs Console.Write with a given color, then resets the console color.
+        ///     Writes to console in a given color, then resets the console color.
         /// </summary>
         /// <param name="text">Text to print</param>
         /// <param name="foregroundColor"></param>

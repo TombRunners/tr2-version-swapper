@@ -1,7 +1,7 @@
 ﻿using System;
 
 using NLog;
-using TR2_Version_Swapper.Utils;
+using Utils;
 
 
 namespace TR2_Version_Swapper
@@ -48,9 +48,9 @@ namespace TR2_Version_Swapper
                 return -1;
             }
             
-            // TODO: VersionSwapper.HandleVersionInstallation();
+            // TODO: VersionSwapper.HandleVersions();
+            VersionSwapper.HandlePatch();
             VersionSwapper.HandleMusicFix();
-            // TODO: VersionSwapper.HandlePatchInstallation();
 
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey(true);

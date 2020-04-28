@@ -1,13 +1,35 @@
 ﻿using System;
 
-using TR2_Version_Swapper.Utils;
+using Utils;
 
 namespace TR2_Version_Swapper
 {
     public static class VersionSwapper
     {
         /// <summary>
-        ///     Checks if the music fix is already installed then takes the appropriate action.
+        ///     Asks the user if they want Patch 1, then acts appropriately.
+        /// </summary>
+        public static void HandlePatch()
+        {
+            Console.WriteLine("Would you like me to install CORE's Patch 1 on top of your selected version?");
+            Console.WriteLine("Please note that you are not required to install this optional patch.");
+            bool installPatch = ConsoleIO.UserPromptYesNo("Install CORE's Patch 1 onto your selected version? [y/n]: ");
+            if (installPatch)
+            {
+                Program.NLogger.Debug("User wants Patch 1 installed...");
+                FileIO.CopyDirectory(Program.Directories.Patch, Program.Directories.Game, true);
+                Program.NLogger.Info("Installed Patch 1 successfully.");
+                ConsoleIO.PrintHeader("Patch 1 successfully installed!", foregroundColor: ConsoleColor.DarkGreen);
+            }
+            else
+            {
+                Program.NLogger.Debug("User declined Patch 1 installation.");
+                ConsoleIO.PrintHeader("Skipping Patch 1 installation.", foregroundColor: ConsoleColor.White);
+            }
+        }
+
+        /// <summary>
+        ///     Checks if the music fix is already installed, then takes the appropriate action.
         ///     If the fix is detected, simply lets the user know it is installed. Otherwise,
         ///     asks if the user would like the music fix installed and acts accordingly.
         /// </summary>
@@ -28,13 +50,13 @@ namespace TR2_Version_Swapper
                 Console.WriteLine("Please note that you are not required to install this optional fix. Any time you");
                 Console.WriteLine("run this program and select a version, I will check for the fix and ask again");
                 Console.WriteLine("if you want to install it. The fix applies to all versions the same, so it only");
-                Console.Write("needs to be installed once. "); // Omit '\n' and leave space for clean same-line prompt.
-                bool installFix = ConsoleIO.UserPromptYesNo();
+                Console.Write("needs to be installed once. "); // Omit '\n' and leave space for a clean same-line prompt.
+                bool installFix = ConsoleIO.UserPromptYesNo("Install the music fix? [y/n]: ");
                 if (installFix)
                 {
-                    Program.NLogger.Debug("User wants the music fix installed.");
+                    Program.NLogger.Debug("User wants the music fix installed...");
                     FileIO.CopyDirectory(Program.Directories.MusicFix, Program.Directories.Game, true);
-                    Program.NLogger.Info("Installed music fix.");
+                    Program.NLogger.Info("Installed music fix successfully.");
                     ConsoleIO.PrintHeader("Music fix successfully installed!", foregroundColor: ConsoleColor.DarkGreen);
                 }
                 else
@@ -46,21 +68,13 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Checks the game directory to see if the music fix files are already present.
+        ///     Checks if the music fix is installed in the game directory.
         /// </summary>
         /// <returns>True if music fix is installed, false otherwise</returns>
         private static bool IsMusicFixInstalled()
         {
-            try
-            {
-                FileIO.FindMissingFile(FileAudit.MusicFilesAudit.Keys, Program.Directories.Game);
-            }
-            catch (RequiredFileMissingException)
-            {
-                return false;
-            }
-
-            return true;
+            string firstMissingFile = FileIO.FindMissingFile(FileAudit.MusicFilesAudit.Keys, Program.Directories.Game);
+            return string.IsNullOrEmpty(firstMissingFile);
         }
     }
 }

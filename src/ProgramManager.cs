@@ -4,15 +4,15 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Configuration;
+
 using CommandLine;
 using CommandLine.Text;
-using Microsoft.Extensions.Configuration;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
 using Octokit;
-
-using TR2_Version_Swapper.Utils;
+using Utils;
 
 namespace TR2_Version_Swapper
 {
@@ -32,7 +32,7 @@ namespace TR2_Version_Swapper
     }
 
     /// <summary>
-    ///     Working and target directories.
+    ///     Organizes working and target directories.
     /// </summary>
     internal struct InstallDirectories
     {
@@ -43,17 +43,18 @@ namespace TR2_Version_Swapper
     }
 
     /// <summary>
-    ///     Provides functionality for handling program initialization, settings, and maintenance.
+    ///     Provides functionality for program initialization and maintenance.
     /// </summary>
     public static class ProgramManager
     {
         /// <summary>
-        ///     Prints intro splash, handles args and settings, makes SIGINT hook.
+        ///     Sets title, prints intro, handles args and settings, hooks SIGINT.
         /// </summary>
         /// <param name="args">Program arguments</param>
         /// <returns>False if args/settings had errors or help/version was requested, true otherwise</returns>
         public static bool InitializeProgram(IEnumerable<string> args)
         {
+            Console.Title = "TR2 Version Swapper";
             PrintSplash();
             bool argsParsedAndNotHelpOrVersion = HandleProgramArgs(args.ToList());
             SetSigIntHook();
@@ -70,7 +71,10 @@ namespace TR2_Version_Swapper
         {
             if (Console.WindowWidth < 81)
                 Console.WindowWidth = 81;
-            foreach (string s in Info.AsciiArt) ConsoleIO.PrintCentered(s, ConsoleColor.DarkCyan);
+
+            foreach (string s in Info.AsciiArt)
+                ConsoleIO.PrintCentered(s, ConsoleColor.DarkCyan);
+
             ConsoleIO.PrintCentered("Made with love by Midge", ConsoleColor.DarkCyan);
             ConsoleIO.PrintCentered($"Source code: {Info.RepoLink}");
         }
@@ -203,7 +207,7 @@ namespace TR2_Version_Swapper
             if (files.Count > Program.LogFileLimit)
             {
                 Program.NLogger.Debug($"Excessive log file count: {fileCount} vs {Program.LogFileLimit}");
-                ConsoleIO.PrintWithColor($"Log file limit of {fileCount} exceeded (total: {Program.LogFileLimit})", ConsoleColor.Yellow);
+                ConsoleIO.PrintWithColor($"Log file limit of {Program.LogFileLimit} exceeded (total: {fileCount})", ConsoleColor.Yellow);
                 Console.WriteLine("Files will be deleted accordingly.");
                 Console.WriteLine();
             }
@@ -278,8 +282,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Validates packaged files and ensures the targeted directory looks like a
-        ///     TR2 installation.
+        ///     Validates packaged files, ensures target directory looks like TR2.
         /// </summary>
         public static void ValidateInstallation()
         {
@@ -290,7 +293,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Ensures files packaged in releases of this software are untampered.
+        ///     Ensures files packaged in releases are untampered.
         /// </summary>
         private static void ValidatePackagedFiles()
         {
@@ -302,14 +305,13 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Checks for the existence of all game files and folders this version swapper
-        ///     handles in the targeted game directory.
+        ///     Ensures target directory contains affected game files and folders.
         /// </summary>
         /// <exception cref="BadInstallationLocationException">Targeted directory is missing a file or folder</exception>
         private static void CheckGameDirLooksLikeATr2Install()
         {
             string missingFile = FileIO.FindMissingFile(FileAudit.GameFiles, Program.Directories.Game);
-            if (string.IsNullOrEmpty(missingFile))
+            if (!string.IsNullOrEmpty(missingFile))
                 throw new BadInstallationLocationException($"Parent folder is missing game file {missingFile}, cannot be a TR2 installation.");
             if (!Directory.Exists(Path.Combine(Program.Directories.Game, "music")))
                 throw new BadInstallationLocationException("Parent folder does not contain a music folder, cannot be a TR2 installation.");
@@ -344,7 +346,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Ensures that if there is a TR2 process running from the targeted game directory, it is killed.
+        ///     Ensures any TR2 process from the target directory is killed.
         /// </summary>
         public static void EnsureNoTr2RunningFromGameDir()
         {
@@ -373,7 +375,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Finds a TR2 process running form the targeted game directory if it exists.
+        ///     Finds a TR2 process from the target directory if it exists.
         /// </summary>
         /// <returns>The running Process or null.</returns>
         private static Process FindTr2RunningFromGameDir()
