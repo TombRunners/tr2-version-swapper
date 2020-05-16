@@ -48,11 +48,11 @@ namespace TR2_Version_Swapper
                 return -1;
             }
             
-            // TODO: VersionSwapper.HandleVersions();
+            VersionSwapper.HandleVersions();
             VersionSwapper.HandlePatch();
             VersionSwapper.HandleMusicFix();
 
-            Console.WriteLine("Press any key to exit...");
+            ConsoleIO.PrintHeader("Version swap complete!","Press any key to exit...", ConsoleColor.White);
             Console.ReadKey(true);
             return 0;
         }

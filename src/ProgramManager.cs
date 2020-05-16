@@ -255,7 +255,7 @@ namespace TR2_Version_Swapper
                 if (result == -1)
                 {
                     Program.NLogger.Debug($"Latest Github release ({latest}) is newer than the running version ({result}).");
-                    ConsoleIO.PrintHeader("A new release is available!", Info.ReleaseLink, ConsoleColor.Green);
+                    ConsoleIO.PrintHeader("A new release is available!", Info.ReleaseLink, ConsoleColor.Yellow);
                     Console.WriteLine("You are strongly advised to update to ensure leaderboard compatibility:");
                 }
                 else if (result == 0)
