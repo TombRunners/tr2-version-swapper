@@ -12,7 +12,7 @@ namespace TR2_Version_Swapper
 
         internal static InstallDirectories Directories;
 
-        internal static int LogFileLimit;
+        internal static UserSettings Settings;
 
         public static int Main(string[] args)
         {
@@ -36,7 +36,7 @@ namespace TR2_Version_Swapper
                     NLogger.Fatal($"Installation failed to validate. {e.Message}\n{e.StackTrace}");
                     ConsoleIO.PrintWithColor(e.Message, ConsoleColor.Red);
                     Console.WriteLine("You are advised to re-install the latest release to fix the issue:");
-                    Console.WriteLine(Info.ReleaseLink);
+                    Console.WriteLine(Misc.ReleaseLink);
                     Console.WriteLine("Press any key to exit...");
                     Console.ReadKey(true);
                     return 2;

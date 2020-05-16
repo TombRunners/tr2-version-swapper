@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 
 using CommandLine;
 using CommandLine.Text;
+using Microsoft.VisualBasic;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -29,6 +30,14 @@ namespace TR2_Version_Swapper
     {
         [Option('v', Default = false, HelpText = "Enable console logging.")]
         public bool Verbose { get; set; }
+    }
+
+    /// <summary>
+    ///     Contains the program settings that can be changed by the user.
+    /// </summary>
+    internal struct UserSettings
+    {
+        public int LogFileLimit;
     }
 
     /// <summary>
@@ -56,9 +65,9 @@ namespace TR2_Version_Swapper
         {
             Console.Title = "TR2 Version Swapper";
             PrintSplash();
-            bool argsParsedAndNotHelpOrVersion = HandleProgramArgs(args.ToList());
+            bool argsParsedAndNotHelpOrVersion = HandleProgramArgs(args);
             SetSigIntHook();
-            bool settingsParsed = ApplyUserSettings();
+            bool settingsParsed = HandleUserSettings();
             SetDirectories();
 
             return argsParsedAndNotHelpOrVersion && settingsParsed;
@@ -72,11 +81,11 @@ namespace TR2_Version_Swapper
             if (Console.WindowWidth < 81)
                 Console.WindowWidth = 81;
 
-            foreach (string s in Info.AsciiArt)
+            foreach (string s in Misc.AsciiArt)
                 ConsoleIO.PrintCentered(s, ConsoleColor.DarkCyan);
 
             ConsoleIO.PrintCentered("Made with love by Midge", ConsoleColor.DarkCyan);
-            ConsoleIO.PrintCentered($"Source code: {Info.RepoLink}");
+            ConsoleIO.PrintCentered($"Source code: {Misc.RepoLink}");
         }
 
         /// <summary>
@@ -104,13 +113,17 @@ namespace TR2_Version_Swapper
             var config = new LoggingConfiguration();
 
             // Configure the targets and rules.
-            var consoleTarget = new ConsoleTarget();
-            consoleTarget.Layout = "${uppercase:${level}}: ${message} ${exception}";
+            var consoleTarget = new ConsoleTarget
+            {
+                Layout = "${uppercase:${level}}: ${message} ${exception}"
+            };
             config.AddRule(consoleLogLevel, LogLevel.Error, consoleTarget);
 
-            var fileTarget = new FileTarget();
-            fileTarget.FileName = Path.Combine("logs", typeof(Program).FullName + "." + DateTime.Now.ToString("s") + ".log");
-            fileTarget.Layout = "${longdate} | ${stacktrace} | ${uppercase:${level}} | ${message} ${exception}";
+            var fileTarget = new FileTarget
+            {
+                FileName = Path.Combine("logs", typeof(Program).FullName + "." + DateTime.Now.ToString("s") + ".log"),
+                Layout = "${longdate} | ${stacktrace} | ${uppercase:${level}} | ${message} ${exception}"
+            };
             config.AddRule(LogLevel.Debug, LogLevel.Fatal, fileTarget);
 
             // Set and load the configuration.
@@ -157,21 +170,64 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Attempts to parse and apply user settings from appsettings.json.
+        ///     Tries to get user settings; creates default if file doesn't exist.
         /// </summary>
         /// <returns>True if process was completed successfully, false if not</returns>
-        private static bool ApplyUserSettings()
+        private static bool HandleUserSettings()
         {
-            IConfiguration config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false)
-                .Build();
+            const string fileName = "appsettings.json";
             
-            if (!int.TryParse(config["LogFileLimit"], out Program.LogFileLimit))
+            if (!File.Exists(fileName))
             {
-                Program.LogFileLimit = 10;
-                ConsoleIO.PrintWithColor("Unable to read the numeric value \"LogFileLimit\" from appsettings.json", ConsoleColor.Yellow);
-                Console.WriteLine("To fix this, you need to edit the number to be an integer without quotes.");
+                CreateDefaultUserSettingsFile();
+                string filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+                Program.NLogger.Debug($"Created a default user settings file at {filePath}.");
+                Console.WriteLine("I created a default user settings files at");
+                Console.WriteLine(filePath);
+                Console.WriteLine("You can edit the settings in this file to your desired amounts.");
+                Console.WriteLine();
+            }
+            
+            return ApplyUserSettingsFromFile(fileName);
+        }
+        
+        /// <summary>
+        ///     Writes a default user settings file.
+        /// </summary>
+        private static void CreateDefaultUserSettingsFile()
+        {
+            using StreamWriter stream = File.CreateText("appsettings.json");
+            foreach (string line in Misc.DefaultSettingsFile)
+                stream.WriteLine(line);
+        }
+
+        /// <summary>
+        ///     
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        private static bool ApplyUserSettingsFromFile(string fileName)
+        {
+            // TODO: Allow user to see failures by displaying message and "Press any key to exit..." prompt.
+            try
+            {
+                IConfiguration config = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile(fileName, optional: false)
+                    .Build();
+                
+                // Try to parse and give specific error messages for each setting.
+                if (!int.TryParse(config["LogFileLimit"], out Program.Settings.LogFileLimit))
+                {
+                    ConsoleIO.PrintWithColor($"Unable to read the numeric value \"LogFileLimit\" from {fileName}", ConsoleColor.Yellow);
+                    Console.WriteLine("To fix this, you need to edit the number to be an integer without quotes.");
+                    return false;
+                }
+            }
+            catch (System.FormatException e)
+            {
+                Program.NLogger.Fatal($"An error occurred while parsing the user settings file! {e.InnerException.Message}");
+                ConsoleIO.PrintWithColor("A critical error occurred while trying to read settings.");
                 return false;
             }
 
@@ -194,7 +250,7 @@ namespace TR2_Version_Swapper
         }
         
         /// <summary>
-        ///     Deletes the oldest log file to prevent unnecessary bloat.
+        ///     Deletes the oldest log file(s) according to user's set limit.
         /// </summary>
         /// <returns>True if a file was deleted, false otherwise.</returns>
         public static void DeleteExcessLogFiles()
@@ -203,23 +259,26 @@ namespace TR2_Version_Swapper
             var files = new List<string>(Directory.GetFiles(dir));
             files.Sort();
             
-            int fileCount = files.Count;
-            if (files.Count > Program.LogFileLimit)
+            int limit = Program.Settings.LogFileLimit;
+            if (limit == 0)
+                return;
+            
+            if (files.Count > limit)
             {
-                Program.NLogger.Debug($"Excessive log file count: {fileCount} vs {Program.LogFileLimit}");
-                ConsoleIO.PrintWithColor($"Log file limit of {Program.LogFileLimit} exceeded (total: {fileCount})", ConsoleColor.Yellow);
+                Program.NLogger.Debug($"Excessive log file count: {files.Count} vs {limit}");
+                ConsoleIO.PrintWithColor($"Log file limit of {limit} exceeded (total: {files.Count})", ConsoleColor.Yellow);
                 Console.WriteLine("Files will be deleted accordingly.");
                 Console.WriteLine();
             }
-            else if (files.Count + 3 > Program.LogFileLimit)
+            else if (files.Count + 3 > limit)
             {
-                Program.NLogger.Debug($"Log file count approaching excessive: {fileCount} vs {Program.LogFileLimit}");
-                ConsoleIO.PrintWithColor($"You are approaching your set log file limit ({fileCount} of {Program.LogFileLimit})", ConsoleColor.Yellow);
+                Program.NLogger.Debug($"Log file count approaching excessive: {files.Count} vs {limit}");
+                ConsoleIO.PrintWithColor($"You are approaching your set log file limit ({files.Count} of {limit})", ConsoleColor.Yellow);
                 Console.WriteLine("Be sure to edit appsettings.json to adjust the limit to your tastes.");
                 Console.WriteLine();
             }
 
-            while (files.Count > Program.LogFileLimit)
+            while (files.Count > limit)
             {
                 try
                 {
@@ -229,7 +288,7 @@ namespace TR2_Version_Swapper
                 catch (Exception e)
                 {
                     Program.NLogger.Error(e, "Could not delete at least one excess log file.");
-                    ConsoleIO.PrintWithColor($"You have more than your setting of {Program.LogFileLimit} log files in the logs folder.", ConsoleColor.Yellow);
+                    ConsoleIO.PrintWithColor($"You have more than your setting of {limit} log files in the logs folder.", ConsoleColor.Yellow);
                     Console.WriteLine("Normally I'd take care of this for you but I had an unexpected error.");
                     Console.WriteLine("I've put some information about it in the log file.");
                     Console.WriteLine();
@@ -255,7 +314,7 @@ namespace TR2_Version_Swapper
                 if (result == -1)
                 {
                     Program.NLogger.Debug($"Latest Github release ({latest}) is newer than the running version ({result}).");
-                    ConsoleIO.PrintHeader("A new release is available!", Info.ReleaseLink, ConsoleColor.Yellow);
+                    ConsoleIO.PrintHeader("A new release is available!", Misc.ReleaseLink, ConsoleColor.Yellow);
                     Console.WriteLine("You are strongly advised to update to ensure leaderboard compatibility:");
                 }
                 else if (result == 0)
@@ -273,7 +332,7 @@ namespace TR2_Version_Swapper
             {
                 Program.NLogger.Error(e, "Github request failed.");
                 ConsoleIO.PrintWithColor("Unable to check for the latest version. Consider manually checking:", ConsoleColor.Yellow);
-                Console.WriteLine(Info.ReleaseLink);
+                Console.WriteLine(Misc.ReleaseLink);
             }
             finally
             {

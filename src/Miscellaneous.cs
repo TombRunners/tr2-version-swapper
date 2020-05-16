@@ -1,6 +1,6 @@
 ﻿namespace TR2_Version_Swapper
 {
-    internal class Info
+    internal class Misc
     {
         public static readonly string[] AsciiArt =
         {
@@ -27,5 +27,15 @@
         public const string RepoLink = "https://github.com/TombRunners/tr2-version-swapper/";
 
         public const string ReleaseLink = "https://github.com/TombRunners/tr2-version-swapper/releases/latest";
+
+        public static readonly string[] DefaultSettingsFile =
+        {
+            @"{",
+            @"  // The number of log files the program will allow before deleting the oldest one(s).",
+            @"  // Set to 0 to allow infinite log file generation.",
+            @"  // Default: 15",
+            @"  ""LogFileLimit"": 15",
+            @"}", 
+        };
     }
 }
