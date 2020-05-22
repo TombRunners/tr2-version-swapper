@@ -1,7 +1,11 @@
-﻿using System;
+﻿// ReSharper disable UnusedMember.Global
+using System;
 
 namespace TR2_Version_Swapper
 {
+    /// <summary>
+    ///     Thrown if the program is not located in a TR2 game installation.
+    /// </summary>
     public class BadInstallationLocationException : Exception
     {
         public BadInstallationLocationException()
@@ -19,6 +23,9 @@ namespace TR2_Version_Swapper
         }
     }
 
+    /// <summary>
+    ///     Thrown if a packaged game file has been tampered.
+    /// </summary>
     public class InvalidGameFileException : Exception
     {
         public InvalidGameFileException()
@@ -36,6 +43,9 @@ namespace TR2_Version_Swapper
         }
     }
 
+    /// <summary>
+    ///     Thrown if a packaged game file is missing.
+    /// </summary>
     public class RequiredFileMissingException : Exception
     {
         public RequiredFileMissingException()

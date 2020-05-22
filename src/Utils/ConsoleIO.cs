@@ -48,10 +48,7 @@ namespace Utils
         /// <remarks>
         ///     Credits: https://stackoverflow.com/a/48755366/10466817
         /// </remarks>
-        public static void PrintHeader(string title,
-            string subtitle = "",
-            ConsoleColor foregroundColor = ConsoleColor.Gray,
-            int printWidth = 80)
+        public static void PrintHeader(string title, string subtitle = "", ConsoleColor foregroundColor = ConsoleColor.Gray, int printWidth = 80)
         {
             string titleContent = HeaderHelper(title, "║");
             string subtitleContent = HeaderHelper(subtitle, "║");

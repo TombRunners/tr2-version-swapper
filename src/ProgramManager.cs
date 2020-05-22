@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 
 using CommandLine;
 using CommandLine.Text;
-using Microsoft.VisualBasic;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -119,6 +118,7 @@ namespace TR2_Version_Swapper
             };
             config.AddRule(consoleLogLevel, LogLevel.Error, consoleTarget);
 
+            Directory.CreateDirectory("logs");
             var fileTarget = new FileTarget
             {
                 FileName = Path.Combine("logs", typeof(Program).FullName + "." + DateTime.Now.ToString("s") + ".log"),
@@ -202,7 +202,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     
+        ///     Serializes user settings into the UserSettings object.
         /// </summary>
         /// <param name="fileName"></param>
         /// <returns></returns>
@@ -224,9 +224,9 @@ namespace TR2_Version_Swapper
                     return false;
                 }
             }
-            catch (System.FormatException e)
+            catch (FormatException e)
             {
-                Program.NLogger.Fatal($"An error occurred while parsing the user settings file! {e.InnerException.Message}");
+                Program.NLogger.Fatal($"An error occurred while parsing the user settings file! {e.InnerException?.Message}");
                 ConsoleIO.PrintWithColor("A critical error occurred while trying to read settings.");
                 return false;
             }
@@ -464,7 +464,7 @@ namespace TR2_Version_Swapper
             bool userResponse = ConsoleIO.UserPromptYesNo();
             if (userResponse)
             {
-                Program.NLogger.Debug($"User is allowing the program to kill the running TR2 task.");
+                Program.NLogger.Debug("User is allowing the program to kill the running TR2 task.");
                 try
                 {
                     p.Kill();
@@ -477,7 +477,7 @@ namespace TR2_Version_Swapper
             }
             else
             {
-                Program.NLogger.Debug($"User is opting to kill the running TR2 task on their own.");
+                Program.NLogger.Debug("User is opting to kill the running TR2 task on their own.");
                 if (p.HasExited)
                 {
                     Program.NLogger.Debug("Process ended before the user prompt loop started.");

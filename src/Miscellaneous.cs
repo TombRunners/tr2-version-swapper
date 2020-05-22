@@ -1,6 +1,6 @@
 ﻿namespace TR2_Version_Swapper
 {
-    internal class Misc
+    internal static class Misc
     {
         public static readonly string[] AsciiArt =
         {
