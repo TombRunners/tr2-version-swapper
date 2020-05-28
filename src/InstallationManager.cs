@@ -116,13 +116,13 @@ namespace TR2_Version_Swapper
         /// <exception cref="InvalidGameFileException">A file's MD5 hash did not match expected value</exception>
         private static void ValidateMd5Hashes(Dictionary<string, string> fileAudit, string dir)
         {
-            foreach ((string file, string requiredHash) in fileAudit)
+            foreach (KeyValuePair<string, string> item in fileAudit)
             {
                 try
                 {
-                    string hash = FileIO.ComputeMd5Hash(Path.Combine(dir, file));
-                    if (hash != requiredHash)
-                        throw new InvalidGameFileException($"File {file} was modified.\nGot {hash}, expected {requiredHash}");
+                    string hash = FileIO.ComputeMd5Hash(Path.Combine(dir, item.Key));
+                    if (hash != item.Value)
+                        throw new InvalidGameFileException($"File {item.Key} was modified.\nGot {hash}, expected {item.Value}");
                 }
                 catch (FileNotFoundException e)
                 {
