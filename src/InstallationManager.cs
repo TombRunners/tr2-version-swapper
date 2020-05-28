@@ -78,7 +78,7 @@ namespace TR2_Version_Swapper
                 }
                 
                 const string statement = "An unhandled exception occurred while validating your installation.";
-                ProgramManager.GiveGenericErrorMessageAndExit(statement, e, 1);
+                ProgramManager.GiveErrorMessageAndExit(statement, e, 1);
             }
         }
 

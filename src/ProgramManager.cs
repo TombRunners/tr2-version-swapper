@@ -29,6 +29,16 @@ namespace TR2_Version_Swapper
     }
 
     /// <summary>
+    ///     A more custom, thorough version of ParserResult.Tag.
+    /// </summary>
+    internal enum ArgumentParseResult
+    {
+        ParsedAndShouldContinue,
+        HelpOrVersionArgGiven,
+        FailedToParse
+    }
+
+    /// <summary>
     ///     Contains the program settings that can be changed by the user.
     /// </summary>
     /// <remarks>
@@ -65,9 +75,22 @@ namespace TR2_Version_Swapper
         {
             
             SetStageAndPrintSplash();
-            
-            if (!HandleProgramArgs(args))
-                EarlyPauseAndExit(0);
+
+            switch (HandleProgramArgs(args))
+            {
+                case ArgumentParseResult.ParsedAndShouldContinue:
+                    break;
+                case ArgumentParseResult.HelpOrVersionArgGiven:
+                    Environment.Exit(0); // No need to pause since they definitely used CMD/PS.
+                    break;
+                case ArgumentParseResult.FailedToParse:
+                    EarlyPauseAndExit(1);
+                    break;
+                default:
+                    var e = new ArgumentOutOfRangeException();
+                    GiveErrorMessageAndExit("An unexpected error occurred after parsing arguments.", e, -1);
+                    break;
+            }
 
             SetSigIntHook();
             SetDirectories();
@@ -94,18 +117,25 @@ namespace TR2_Version_Swapper
         ///     Parses and propagates command-line arguments.
         /// </summary>
         /// <param name="args">Program arguments</param>
-        /// <returns>False if args were incorrect or help/version was requested, true otherwise</returns>
-        private static bool HandleProgramArgs(IEnumerable<string> args)
+        /// <returns>The appropriate ArgumentParseResult value</returns>
+        private static ArgumentParseResult HandleProgramArgs(IEnumerable<string> args)
         {
+            var result = ArgumentParseResult.ParsedAndShouldContinue;
             var parser = new Parser(with => with.HelpWriter = null);
             ParserResult<ProgramArguments> parserResult = parser.ParseArguments<ProgramArguments>(args);
             parserResult
                 .WithParsed(ConfigLogger)
-                .WithNotParsed(errs => DisplayHelp(parserResult, errs));
+                .WithNotParsed(errs =>
+                {
+                    if (errs.IsHelp() || errs.IsVersion())
+                        result = ArgumentParseResult.HelpOrVersionArgGiven;
+                    else
+                        result = ArgumentParseResult.FailedToParse;
+
+                    DisplayHelp(parserResult, errs);
+                });
             
-            // Note on a slight misnomer: for successful --help and --version calls, CommandLine gives ParserResultType.NotParsed.
-            // Thus, returning the below equality tells the caller the program successfully parsed arguments leading to further work.
-            return parserResult.Tag == ParserResultType.Parsed;
+            return result;
         }
 
         /// <summary>
@@ -177,8 +207,6 @@ namespace TR2_Version_Swapper
         /// <summary>
         ///     Tries to get user settings; creates default if file doesn't exist.
         /// </summary>
-        /// <returns>True if process was completed successfully, false if not</returns>
-        /// <exception cref="JsonException">Could not deserialize due to wrongly-formatted JSON in file.</exception>
         private static void HandleUserSettings() 
         {
             const string fileName = "appsettings.json";
@@ -192,10 +220,7 @@ namespace TR2_Version_Swapper
             catch (JsonException e)
             {
                 const string statement = "An error was encountered while reading the user settings file.";
-                Program.NLogger.Fatal($"{statement} {e.Message}\n{e.StackTrace}");
-                ConsoleIO.PrintWithColor(statement, ConsoleColor.Red);
-                Console.WriteLine("I've put some information about it in this session's log file.");
-                EarlyPauseAndExit(1);
+                GiveErrorMessageAndExit(statement, e, 1);
             }
         }
         
@@ -249,7 +274,6 @@ namespace TR2_Version_Swapper
         /// <summary>
         ///     Deletes the oldest log file(s) according to user's set limit.
         /// </summary>
-        /// <returns>True if a file was deleted, false otherwise.</returns>
         public static void DeleteExcessLogFiles()
         {
             string dir = Path.Combine(Directory.GetCurrentDirectory(), "logs");
@@ -302,7 +326,7 @@ namespace TR2_Version_Swapper
         /// <param name="statement">The string to log and also print to console</param>
         /// <param name="e">The exception inspiring the early program exit</param>
         /// <param name="exitCode">The return code to return to the OS</param>
-        public static void GiveGenericErrorMessageAndExit(string statement, Exception e, int exitCode)
+        public static void GiveErrorMessageAndExit(string statement, Exception e, int exitCode)
         {
             Program.NLogger.Fatal($"{statement} {e.Message}\n{e.StackTrace}");
             ConsoleIO.PrintWithColor(statement, ConsoleColor.Red);
