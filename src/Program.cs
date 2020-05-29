@@ -20,7 +20,6 @@ namespace TR2_Version_Swapper
             ProgramManager.DeleteExcessLogFiles();
             
             InstallationManager.VersionCheck();
-            InstallationManager.EnsureNoTr2RunningFromGameDir();
             InstallationManager.ValidateInstallation();
             
             VersionSwapper.HandleVersions();

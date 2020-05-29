@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
+
 using Utils;
 
 namespace TR2_Version_Swapper
@@ -21,7 +24,120 @@ namespace TR2_Version_Swapper
             {Version.Multipatch, "Multipatch"},
             {Version.EPC, "Eidos Premier Collection"},
             {Version.UKB, "Eidos UK Box"}
-        };
+        };        
+        
+        /// <summary>
+        ///     Ensures any TR2 process from the target directory is killed.
+        /// </summary>
+        private static void EnsureNoTr2RunningFromGameDir()
+        {
+            try
+            {
+                Process tr2Process = FindTr2RunningFromGameDir();
+                if (tr2Process == null)
+                {
+                    Program.NLogger.Debug("No TR2 process of concern found; looks safe to copy files.");
+                }
+                else
+                {
+                    Program.NLogger.Info("Found TR2 process of concern.");
+                    KillRunningTr2Game(tr2Process);
+                    Program.NLogger.Info("Handled TR2 process of concern.");
+                }
+            }
+            catch (Exception e)
+            {
+                Program.NLogger.Error($"An unexpected error occurred while trying to find running TR2 processes. {e.Message}\n{e.StackTrace}");
+                ConsoleIO.PrintWithColor("I was unable to finish searching for running TR2 processes.", ConsoleColor.Yellow);
+                Console.WriteLine("Please note that a TR2 game or background task running from the target folder");
+                Console.WriteLine("could cause the program to crash due to errors.");
+                Console.WriteLine("Double-check and make sure no TR2 game or background task is running.");
+            }
+        }
+
+        /// <summary>
+        ///     Finds a TR2 process from the target directory if it exists.
+        /// </summary>
+        /// <returns>The running Process or null.</returns>
+        private static Process FindTr2RunningFromGameDir()
+        {
+            Program.NLogger.Debug("Checking for a TR2 process running in the target folder...");
+            Process[] processes = Process.GetProcesses();
+            return processes.FirstOrDefault(p =>
+                p.ProcessName.ToLower() == "tomb2" &&
+                p.MainModule != null &&
+                Directory.GetParent(p.MainModule.FileName).FullName == Program.Directories.Game
+            );
+        }
+
+        /// <summary>
+        ///     Asks the user if they want the program to kill the running TR2 process and acts accordingly.
+        /// </summary>
+        /// <param name="p">TR2 Process of concern</param>
+        private static void KillRunningTr2Game(Process p)
+        {
+            string processInfo = $"Name: {p.ProcessName} | ID: {p.Id} | Start time: {p.StartTime.TimeOfDay}";
+            Program.NLogger.Debug($"Found a TR2 process running from target folder. {processInfo}");
+            ConsoleIO.PrintWithColor("TR2 is running from the target folder.", ConsoleColor.Yellow);
+            ConsoleIO.PrintWithColor(processInfo, ConsoleColor.Yellow);
+            Console.WriteLine("Would you like me to end the task for you? If not, I will give a message");
+            Console.Write("describing how to find and close it. ");
+            if (ConsoleIO.UserPromptYesNo())
+            {
+                Program.NLogger.Debug("User wants the program to kill the running TR2 task.");
+                try
+                {
+                    p.Kill();
+                }
+                catch (Exception e)
+                {
+                    Program.NLogger.Error(e, "An unexpected error occurred while trying to kill the TR2 process.");
+                    ConsoleIO.PrintWithColor("I was unable to kill the TR2 process. You will have to do it yourself.", ConsoleColor.Yellow);
+                    Program.NLogger.Debug("Going into the user prompt loop due to a failure in killing the process.");
+                    LetUserKillTask(p);
+                }
+            }
+            else
+            {
+                Program.NLogger.Debug("User opted to kill the running TR2 process on their own.");
+                LetUserKillTask(p);
+            }
+        }
+
+        /// <summary>
+        ///     Puts the user in a prompt loop until they kill the process.
+        /// </summary>
+        /// <param name="p">TR2 process of concern</param>
+        private static void LetUserKillTask(Process p)
+        {
+            bool stillRunning = !p.HasExited;
+            if (!stillRunning)
+            {
+                Program.NLogger.Debug("Process ended before the user prompt loop started.");
+                Console.WriteLine("Process ended before I could prompt you. Skipping prompt loop.");
+                Console.WriteLine();
+            }
+
+            while (stillRunning)
+            {
+                Console.WriteLine("Be sure that all TR2 game windows are closed. Then, if you are still");
+                Console.WriteLine("getting this message, check Task Manager for any phantom processes.");
+                Console.WriteLine("Press a key to continue. Or press CTRL + C to exit this program.");
+                Program.NLogger.Debug("Waiting for user to close the running task, running ReadKey.");
+                Console.ReadKey(true);
+                stillRunning = !p.HasExited;
+                if (stillRunning)
+                {
+                    Program.NLogger.Debug("User tried to continue but the TR2 process is still running, looping.");
+                    Console.WriteLine("Process still running, prompting again.");
+                }
+                else
+                {
+                    Program.NLogger.Debug("User continued the program after the TR2 process had exited.");
+                    Console.WriteLine();
+                }
+            }
+        }
 
         /// <summary>
         ///     Asks the user which version they want, then acts appropriately.
@@ -30,8 +146,8 @@ namespace TR2_Version_Swapper
         {
             string selectedVersion = VersionPrompt();
             string versionDir = Path.Combine(Program.Directories.Versions, selectedVersion);
-            Program.NLogger.Debug($"Using \"{versionDir}\" as source folder for version swapping.");
-            FileIO.CopyDirectory(versionDir, Program.Directories.Game, true);
+
+            TryCopyingDirectory(versionDir, Program.Directories.Game);
             Program.NLogger.Info($"Installed {selectedVersion} successfully.");
             ConsoleIO.PrintHeader($"{selectedVersion} successfully installed!", foregroundColor: ConsoleColor.Green);
             Console.WriteLine();
@@ -79,7 +195,7 @@ namespace TR2_Version_Swapper
             if (installPatch)
             {
                 Program.NLogger.Debug("User wants Patch 1 installed...");
-                FileIO.CopyDirectory(Program.Directories.Patch, Program.Directories.Game, true);
+                TryCopyingDirectory(Program.Directories.Patch, Program.Directories.Game);
                 Program.NLogger.Info("Installed Patch 1 successfully.");
                 ConsoleIO.PrintHeader("Patch 1 successfully installed!", foregroundColor: ConsoleColor.Green);
             }
@@ -118,7 +234,7 @@ namespace TR2_Version_Swapper
                 if (installFix)
                 {
                     Program.NLogger.Debug("User wants the music fix installed...");
-                    FileIO.CopyDirectory(Program.Directories.MusicFix, Program.Directories.Game, true);
+                    TryCopyingDirectory(Program.Directories.MusicFix, Program.Directories.Game);
                     Program.NLogger.Info("Installed music fix successfully.");
                     ConsoleIO.PrintHeader("Music fix successfully installed!", foregroundColor: ConsoleColor.Green);
                 }
@@ -138,6 +254,25 @@ namespace TR2_Version_Swapper
         {
             string firstMissingFile = FileIO.FindMissingFile(FileAudit.MusicFilesAudit.Keys, Program.Directories.Game);
             return string.IsNullOrEmpty(firstMissingFile);
+        }
+
+        /// <summary>
+        ///     Attempts to copy files, preventing and closing program if any errors occur.
+        /// </summary>
+        /// <param name="srcDir">The directory to copy from</param>
+        /// <param name="destDir">The directory to copy to</param>
+        private static void TryCopyingDirectory(string srcDir, string destDir)
+        {
+            EnsureNoTr2RunningFromGameDir();
+            try
+            {
+                Program.NLogger.Debug($"Attempting a copy from \"{srcDir}\" to \"{destDir}\"");
+                FileIO.CopyDirectory(srcDir, destDir, true);
+            }
+            catch (Exception e)
+            {
+                ProgramManager.GiveErrorMessageAndExit("Failed to copy files!", e, 3);
+            }
         }
     }
 }

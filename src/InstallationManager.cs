@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 
 using Octokit;
 using Utils;
@@ -127,109 +125,6 @@ namespace TR2_Version_Swapper
                 catch (FileNotFoundException e)
                 {
                     throw new RequiredFileMissingException(e.Message);
-                }
-            }
-        }
-
-        /// <summary>
-        ///     Ensures any TR2 process from the target directory is killed.
-        /// </summary>
-        public static void EnsureNoTr2RunningFromGameDir()
-        {
-            try
-            {
-                Process tr2Process = FindTr2RunningFromGameDir();
-                if (tr2Process == null)
-                {
-                    Program.NLogger.Info("No TR2 processes running from the target folder.");
-                }
-                else
-                {
-                    Program.NLogger.Debug("Found running TR2 process of concern.");
-                    KillRunningTr2Game(tr2Process);
-                    Program.NLogger.Info("Handled running TR2 process of concern.");
-                }
-            }
-            catch (Exception e)
-            {
-                Program.NLogger.Error(e, "An unexpected error occurred while trying to find running TR2 processes.");
-                ConsoleIO.PrintWithColor("I was unable to finish searching for running TR2 processes.", ConsoleColor.Yellow);
-                Console.WriteLine("Please note that a TR2 game or background task running from the target folder");
-                Console.WriteLine("could cause issues with the program, such as preventing overwrites.");
-                Console.WriteLine("Double-check and make sure no TR2 game or background task is running.");
-            }
-        }
-
-        /// <summary>
-        ///     Finds a TR2 process from the target directory if it exists.
-        /// </summary>
-        /// <returns>The running Process or null.</returns>
-        private static Process FindTr2RunningFromGameDir()
-        {
-            Program.NLogger.Debug("Checking for a TR2 process running in the target folder...");
-            Process[] processes = Process.GetProcesses();
-            return processes.FirstOrDefault(p => 
-                p.ProcessName.ToLower() == "tomb2" &&
-                p.MainModule != null &&
-                Directory.GetParent(p.MainModule.FileName).FullName == Program.Directories.Game
-            );
-        }
-
-        /// <summary>
-        ///     Asks the user if they want the program to kill the running TR2 process. If user declines,
-        ///     a loop will begin: first it gives a message and waits for user input to continues,
-        ///     then exits if the process has ended.
-        /// </summary>
-        /// <param name="p">TR2 Process of concern</param>
-        private static void KillRunningTr2Game(Process p)
-        {
-            string processInfo = $"Name: {p.ProcessName} | ID: {p.Id} | Start time: { p.StartTime.TimeOfDay}";
-            Program.NLogger.Debug($"Found a TR2 process running from target folder. {processInfo}");
-            ConsoleIO.PrintWithColor("TR2 is running from the target folder.", ConsoleColor.Yellow);
-            ConsoleIO.PrintWithColor(processInfo, ConsoleColor.Yellow);
-            Console.WriteLine("Would you like me to end the task for you? If not, I will give a message");
-            Console.Write("describing how to find and close it. Type \"y\" to have me kill the task: ");
-            if (ConsoleIO.UserPromptYesNo())
-            {
-                Program.NLogger.Debug("User is allowing the program to kill the running TR2 task.");
-                try
-                {
-                    p.Kill();
-                }
-                catch (Exception e)
-                {
-                    Program.NLogger.Error(e, "An unexpected error occurred while trying to kill the TR2 process.");
-                    ConsoleIO.PrintWithColor("I was unable to kill the TR2 process. You will have to do it yourself.", ConsoleColor.Yellow);
-                }
-            }
-            else
-            {
-                Program.NLogger.Debug("User is opting to kill the running TR2 task on their own.");
-                if (p.HasExited)
-                {
-                    Program.NLogger.Debug("Process ended before the user prompt loop started.");
-                    Console.WriteLine("Process ended by external actor. Skipping message prompt and wait loop.");
-                    Console.WriteLine();
-                }
-                bool stillRunning = true;
-                while (stillRunning)
-                {
-                    Console.WriteLine("Be sure that all TR2 game windows are closed. Then, if you are still");
-                    Console.WriteLine("getting this message, check Task Manager for any phantom processes.");
-                    Console.WriteLine("Press a key to continue. Or press CTRL + C to exit this program.");
-                    Program.NLogger.Debug("Waiting for user to close the running task, running ReadKey.");
-                    Console.ReadKey(true);
-                    stillRunning = !p.HasExited;
-                    if (stillRunning)
-                    { 
-                        Program.NLogger.Debug("User tried to continue but the TR2 process is still running, looping.");
-                        Console.WriteLine("Process still running, prompting again.");
-                    }
-                    else
-                    {
-                        Program.NLogger.Debug("User continued the program after the TR2 process had exited.");
-                        Console.WriteLine();
-                    }
                 }
             }
         }
