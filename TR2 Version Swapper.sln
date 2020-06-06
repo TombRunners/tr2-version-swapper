@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30002.166
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TR2 Version Swapper", "TR2 Version Swapper.csproj", "{2843EDC2-76E9-448E-80B9-7ADCB484AACD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2843EDC2-76E9-448E-80B9-7ADCB484AACD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2843EDC2-76E9-448E-80B9-7ADCB484AACD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2843EDC2-76E9-448E-80B9-7ADCB484AACD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2843EDC2-76E9-448E-80B9-7ADCB484AACD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {433061FE-CC4C-40EE-97AF-FC6AAE66E5B7}
+	EndGlobalSection
+EndGlobal
