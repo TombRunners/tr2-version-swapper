@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-
+using System.Net.Http;
 using Octokit;
 using Utils;
 
@@ -38,9 +38,13 @@ namespace TR2_Version_Swapper
                     Console.WriteLine("Let me know how testing goes! :D");
                 }
             }
-            catch (ApiException e)
+            catch (Exception e)
             {
-                Program.NLogger.Error(e, "Github request failed.");
+                if (e is ApiException || e is HttpRequestException)
+                    Program.NLogger.Error($"Github request failed due to API/HTTP failure. {e.Message}\n{e.StackTrace}");
+                else
+                    Program.NLogger.Error($"Version check failed with an unforeseen error. {e.Message}\n{e.StackTrace}");
+
                 ConsoleIO.PrintWithColor("Unable to check for the latest version. Consider manually checking:", ConsoleColor.Yellow);
                 Console.WriteLine(Misc.ReleaseLink);
             }
