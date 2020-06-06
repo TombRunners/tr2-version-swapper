@@ -2,6 +2,9 @@
 
 namespace TR2_Version_Swapper
 {
+    /// <summary>
+    ///     Contains information about packaged files' names and MD5 hashes.
+    /// </summary>
     internal static class FileAudit
     {
         internal static readonly string[] GameFiles =

@@ -3,15 +3,16 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-
+using System.Threading;
 using Utils;
 
 namespace TR2_Version_Swapper
 {
-
-    
     public static class VersionSwapper
     {
+        /// <summary>
+        ///     The user's Version prompt options.
+        /// </summary>
         private enum Version
         {
             Multipatch = 1,
@@ -19,6 +20,9 @@ namespace TR2_Version_Swapper
             UKB = 3
         }
 
+        /// <summary>
+        ///     Mapping of Versions to directory strings.
+        /// </summary>
         private static readonly Dictionary<Version, string> SelectionDictionary = new Dictionary<Version, string>
         {
             {Version.Multipatch, "Multipatch"},
@@ -71,7 +75,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Asks the user if they want the program to kill the running TR2 process and acts accordingly.
+        ///     Asks the user how to kill the process, then acts accordingly.
         /// </summary>
         /// <param name="p">TR2 Process of concern</param>
         private static void KillRunningTr2Game(Process p)
@@ -102,6 +106,10 @@ namespace TR2_Version_Swapper
                 Program.NLogger.Debug("User opted to kill the running TR2 process on their own.");
                 LetUserKillTask(p);
             }
+
+            // During testing, it was found that the program went from process killing to file copying too fast,
+            // and the files had not yet been freed for access, causing exceptions. Briefly pausing seems to fix this.
+            Thread.Sleep(100);
         }
 
         /// <summary>

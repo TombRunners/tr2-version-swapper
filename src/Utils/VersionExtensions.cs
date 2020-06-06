@@ -5,11 +5,11 @@ namespace Utils
     public static class VersionExtensions
     {
         /// <summary>
-        ///     Provides an alternative to the built-in Version compare, which sometimes yields undesirable
+        ///     Provides an alternative to <see cref="Version"/>'s compare, which sometimes yields undesirable
         ///     results when comparing a version with no revision number to a version with a revision number, etc.
-        ///     With this, you specify up-front how many of the version's numbers to compare.
+        ///     With this extension method, you specify up-front how many of the version's numbers to compare.
         /// </summary>
-        /// <returns>-1 if `this` is less, 0 if equal, 1 if `this` is greater</returns>
+        /// <returns>-1 if <c>this</c> is less, 0 if equal, 1 if <c>this</c> is greater</returns>
         /// <remarks>
         ///     Credits: https://stackoverflow.com/a/28695949/10466817
         /// </remarks>

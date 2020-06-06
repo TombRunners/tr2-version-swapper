@@ -1,5 +1,8 @@
 ﻿namespace TR2_Version_Swapper
 {
+    /// <summary>
+    ///     Contains miscellaneous constants the program might be u
+    /// </summary>
     internal static class Misc
     {
         public static readonly string[] AsciiArt =

@@ -14,7 +14,7 @@ using Utils;
 namespace TR2_Version_Swapper
 {
     /// <summary>
-    ///     Class used by CommandLine.
+    ///     Class used by <see cref="Parser"/>.
     /// </summary>
     /// <remarks>
     ///     The lack of explicit set usage (CommandLine's Bind not detected as such)
@@ -29,7 +29,7 @@ namespace TR2_Version_Swapper
     }
 
     /// <summary>
-    ///     A more custom, thorough version of ParserResult.Tag.
+    ///     A more custom, thorough version of <see cref="ParserResult{T}.Tag"/>.
     /// </summary>
     internal enum ArgumentParseResult
     {
@@ -243,7 +243,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Parses and deserializes user settings into a UserSettings object.
+        ///     Parses and deserializes user settings into a <see cref="UserSettings"/> object.
         /// </summary>
         /// <param name="fileName">User settings file name</param>
         private static void ApplyUserSettingsFromFile(string fileName)
