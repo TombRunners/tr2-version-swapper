@@ -18,7 +18,9 @@ namespace Utils
         {
             var github = new GitHubClient(new ProductHeaderValue("tr2-version-swapper"));
             Release latest = await github.Repository.Release.GetLatest("TombRunners", "tr2-version-swapper");
-            return new Version(latest.TagName.Substring(1));
+            return latest.TagName[0] == 'v'
+                ? new Version(latest.TagName.Substring(1))
+                : new Version(latest.TagName);
         }
     }
 }
