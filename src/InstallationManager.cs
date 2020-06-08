@@ -16,16 +16,27 @@ namespace TR2_Version_Swapper
         {
             Program.NLogger.Debug("Running Github Version checks...");
             Version current = typeof(Program).Assembly.GetName().Version;
+            var repoInfo = new Github.RepoInformation()
+            {
+                Owner = "TombRunners",
+                Name = "tr2-version-swapper"
+            };
+            var agentInfo = new Github.UserAgentInformation()
+            {
+                Name = "TRVS",
+                Version = current.ToString()
+            };
+
             try
             {
-                Version latest = Github.GetLatestVersion().GetAwaiter().GetResult();
+                Version latest = Github.GetLatestVersion(repoInfo, agentInfo).GetAwaiter().GetResult();
                 int result = current.CompareTo(latest, 3);
 
                 if (result == -1)
                 {
                     Program.NLogger.Debug($"Latest Github release ({latest}) is newer than the running version ({result}).");
                     ConsoleIO.PrintHeader("A new release is available!", Misc.ReleaseLink, ConsoleColor.Yellow);
-                    Console.WriteLine("You are strongly advised to update to ensure leaderboard compatibility:");
+                    Console.WriteLine("You are strongly advised to update to ensure leaderboard compatibility.");
                 }
                 else if (result == 0)
                 {
@@ -41,7 +52,7 @@ namespace TR2_Version_Swapper
             catch (Exception e)
             {
                 if (e is ApiException || e is HttpRequestException)
-                    Program.NLogger.Error($"Github request failed due to API/HTTP failure. {e.Message}\n{e.StackTrace}");
+                    Program.NLogger.Error($"Github request failed due to an API/HTTP failure. {e.Message}\n{e.StackTrace}");
                 else
                     Program.NLogger.Error($"Version check failed with an unforeseen error. {e.Message}\n{e.StackTrace}");
 
