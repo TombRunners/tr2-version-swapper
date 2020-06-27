@@ -21,7 +21,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Mapping of Versions to directory strings.
+        ///     Mapping of <see cref="Version"/>s to directory <see langword="string"/>s.
         /// </summary>
         private static readonly Dictionary<Version, string> SelectionDictionary = new Dictionary<Version, string>
         {
@@ -31,41 +31,41 @@ namespace TR2_Version_Swapper
         };        
         
         /// <summary>
-        ///     Ensures any TR2 process from the target directory is killed.
+        ///     Ensures any TR <see cref="Process"/> from the target directory is killed.
         /// </summary>
-        private static void EnsureNoTr2RunningFromGameDir()
+        private static void EnsureNoTrGameRunningFromGameDir()
         {
             try
             {
-                Process tr2Process = FindTr2RunningFromGameDir();
-                if (tr2Process == null)
+                Process trProcess = FindTrGameRunningFromGameDir();
+                if (trProcess == null)
                 {
-                    Program.NLogger.Debug("No TR2 process of concern found; looks safe to copy files.");
+                    Program.NLogger.Debug($"No {Program.Game} process of concern found; looks safe to copy files.");
                 }
                 else
                 {
-                    Program.NLogger.Info("Found TR2 process of concern.");
-                    KillRunningTr2Game(tr2Process);
-                    Program.NLogger.Info("Handled TR2 process of concern.");
+                    Program.NLogger.Info($"Found {Program.Game} process of concern.");
+                    KillRunningTrGame(trProcess);
+                    Program.NLogger.Info($"Handled {Program.Game} process of concern.");
                 }
             }
             catch (Exception e)
             {
-                Program.NLogger.Error($"An unexpected error occurred while trying to find running TR2 processes. {e.Message}\n{e.StackTrace}");
-                ConsoleIO.PrintWithColor("I was unable to finish searching for running TR2 processes.", ConsoleColor.Yellow);
-                Console.WriteLine("Please note that a TR2 game or background task running from the target folder");
+                Program.NLogger.Error($"An unexpected error occurred while trying to find running {Program.Game} processes. {e.Message}\n{e.StackTrace}");
+                ConsoleIO.PrintWithColor($"I was unable to finish searching for running {Program.Game} processes.", ConsoleColor.Yellow);
+                Console.WriteLine($"Please note that a {Program.Game} game or background task running from the target folder");
                 Console.WriteLine("could cause the program to crash due to errors.");
-                Console.WriteLine("Double-check and make sure no TR2 game or background task is running.");
+                Console.WriteLine($"Double-check and make sure no {Program.Game} game or background task is running.");
             }
         }
 
         /// <summary>
-        ///     Finds a TR2 process from the target directory if it exists.
+        ///     Finds a TR <see cref="Process"/> from the target directory if it exists.
         /// </summary>
-        /// <returns>The running Process or null.</returns>
-        private static Process FindTr2RunningFromGameDir()
+        /// <returns>The running <see cref="Process"/> or <see langword="null"/> if none was found.</returns>
+        private static Process FindTrGameRunningFromGameDir()
         {
-            Program.NLogger.Debug("Checking for a TR2 process running in the target folder...");
+            Program.NLogger.Debug($"Checking for a {Program.Game} process running in the target folder...");
             Process[] processes = Process.GetProcesses();
             return processes.FirstOrDefault(p =>
                 p.ProcessName.ToLower() == "tomb2" &&
@@ -75,35 +75,35 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Asks the user how to kill the process, then acts accordingly.
+        ///     Asks the user how to kill <paramref name="p"/>, then acts accordingly.
         /// </summary>
-        /// <param name="p">TR2 Process of concern</param>
-        private static void KillRunningTr2Game(Process p)
+        /// <param name="p"><see cref="Process"/> of concern</param>
+        private static void KillRunningTrGame(Process p)
         {
             string processInfo = $"Name: {p.ProcessName} | ID: {p.Id} | Start time: {p.StartTime.TimeOfDay}";
-            Program.NLogger.Debug($"Found a TR2 process running from target folder. {processInfo}");
-            ConsoleIO.PrintWithColor("TR2 is running from the target folder.", ConsoleColor.Yellow);
+            Program.NLogger.Debug($"Found a {Program.Game} process running from target folder. {processInfo}");
+            ConsoleIO.PrintWithColor($"{Program.Game} is running from the target folder.", ConsoleColor.Yellow);
             ConsoleIO.PrintWithColor(processInfo, ConsoleColor.Yellow);
             Console.WriteLine("Would you like me to end the task for you? If not, I will give a message");
             Console.Write("describing how to find and close it. ");
             if (ConsoleIO.UserPromptYesNo())
             {
-                Program.NLogger.Debug("User wants the program to kill the running TR2 task.");
+                Program.NLogger.Debug($"User wants the program to kill the running {Program.Game} task.");
                 try
                 {
                     p.Kill();
                 }
                 catch (Exception e)
                 {
-                    Program.NLogger.Error(e, "An unexpected error occurred while trying to kill the TR2 process.");
-                    ConsoleIO.PrintWithColor("I was unable to kill the TR2 process. You will have to do it yourself.", ConsoleColor.Yellow);
+                    Program.NLogger.Error(e, $"An unexpected error occurred while trying to kill the {Program.Game} process.");
+                    ConsoleIO.PrintWithColor($"I was unable to kill the {Program.Game} process. You will have to do it yourself.", ConsoleColor.Yellow);
                     Program.NLogger.Debug("Going into the user prompt loop due to a failure in killing the process.");
                     LetUserKillTask(p);
                 }
             }
             else
             {
-                Program.NLogger.Debug("User opted to kill the running TR2 process on their own.");
+                Program.NLogger.Debug($"User opted to kill the running {Program.Game} process on their own.");
                 LetUserKillTask(p);
             }
 
@@ -113,9 +113,9 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Puts the user in a prompt loop until they kill the process.
+        ///     Puts the user in a prompt loop until they kill <paramref name="p"/>.
         /// </summary>
-        /// <param name="p">TR2 process of concern</param>
+        /// <param name="p">TR process of concern</param>
         private static void LetUserKillTask(Process p)
         {
             bool stillRunning = !p.HasExited;
@@ -128,7 +128,7 @@ namespace TR2_Version_Swapper
 
             while (stillRunning)
             {
-                Console.WriteLine("Be sure that all TR2 game windows are closed. Then, if you are still");
+                Console.WriteLine($"Be sure that all {Program.Game} game windows are closed. Then, if you are still");
                 Console.WriteLine("getting this message, check Task Manager for any phantom processes.");
                 Console.WriteLine("Press a key to continue. Or press CTRL + C to exit this program.");
                 Program.NLogger.Debug("Waiting for user to close the running task, running ReadKey.");
@@ -136,12 +136,12 @@ namespace TR2_Version_Swapper
                 stillRunning = !p.HasExited;
                 if (stillRunning)
                 {
-                    Program.NLogger.Debug("User tried to continue but the TR2 process is still running, looping.");
+                    Program.NLogger.Debug($"User tried to continue but the {Program.Game} process is still running, looping.");
                     Console.WriteLine("Process still running, prompting again.");
                 }
                 else
                 {
-                    Program.NLogger.Debug("User continued the program after the TR2 process had exited.");
+                    Program.NLogger.Debug($"User continued the program after the {Program.Game} process had exited.");
                     Console.WriteLine();
                 }
             }
@@ -216,10 +216,13 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Checks if the music fix is already installed, then takes the appropriate action.
-        ///     If the fix is detected, simply lets the user know it is installed. Otherwise,
-        ///     asks if the user would like the music fix installed and acts accordingly.
+        ///     Offers and installs the music fix if accepted.
         /// </summary>
+        /// <remarks>
+        ///     Checks if the music fix is already installed, then takes the appropriate action.
+        ///     If the fix is detected, simply reminds the user it is installed. Otherwise,
+        ///     asks if the user would like the music fix installed and acts accordingly.
+        /// </remarks>
         public static void HandleMusicFix()
         {
             if (IsMusicFixInstalled())
@@ -257,7 +260,7 @@ namespace TR2_Version_Swapper
         /// <summary>
         ///     Checks if the music fix is installed in the game directory.
         /// </summary>
-        /// <returns>True if music fix is installed, false otherwise</returns>
+        /// <returns><see langword="true"/> if music fix is installed, <see langword="false"/> otherwise</returns>
         private static bool IsMusicFixInstalled()
         {
             string firstMissingFile = FileIO.FindMissingFile(FileAudit.MusicFilesAudit.Keys, Program.Directories.Game);
@@ -271,7 +274,9 @@ namespace TR2_Version_Swapper
         /// <param name="destDir">The directory to copy to</param>
         private static void TryCopyingDirectory(string srcDir, string destDir)
         {
-            EnsureNoTr2RunningFromGameDir();
+            // If the EXE is in use, it will cause issues when trying to overwrite it.
+            EnsureNoTrGameRunningFromGameDir();
+            // Try to perform the copy.
             try
             {
                 Program.NLogger.Debug($"Attempting a copy from \"{srcDir}\" to \"{destDir}\"");

@@ -14,6 +14,8 @@ namespace TR2_Version_Swapper
 
         internal static UserSettings Settings;
 
+        internal const string Game = "TR2";
+
         public static int Main(string[] args)
         {
             ProgramManager.InitializeProgram(args);

@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
+
 using Octokit;
 using Utils;
 
 namespace TR2_Version_Swapper
 {
-    internal static class InstallationManager
+    public static class InstallationManager
     {
         /// <summary>
         ///     Notifies the user if their program is outdated.
@@ -19,7 +20,7 @@ namespace TR2_Version_Swapper
             var repoInfo = new Github.RepoInformation()
             {
                 Owner = "TombRunners",
-                Name = "tr2-version-swapper"
+                Name = $"{Program.Game.ToLower()}-version-swapper"
             };
             var agentInfo = new Github.UserAgentInformation()
             {
@@ -66,7 +67,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Validates packaged files, ensures target directory looks like TR2.
+        ///     Validates packaged files, ensures target directory looks like a TR game.
         /// </summary>
         public static void ValidateInstallation()
         {
@@ -74,8 +75,8 @@ namespace TR2_Version_Swapper
             {
                 ValidatePackagedFiles();
                 Program.NLogger.Info("Successfully validated packaged files using MD5 hashes.");
-                CheckGameDirLooksLikeATr2Install();
-                Program.NLogger.Info("Parent directory seems like a TR2 game installation.");
+                CheckGameDirLooksLikeATrInstall();
+                Program.NLogger.Info($"Parent directory seems like a {Program.Game} game installation.");
             }
             catch (Exception e)
             {
@@ -111,13 +112,13 @@ namespace TR2_Version_Swapper
         ///     Ensures target directory contains affected game files and folders.
         /// </summary>
         /// <exception cref="BadInstallationLocationException">Targeted directory is missing a file or folder</exception>
-        private static void CheckGameDirLooksLikeATr2Install()
+        private static void CheckGameDirLooksLikeATrInstall()
         {
             string missingFile = FileIO.FindMissingFile(FileAudit.GameFiles, Program.Directories.Game);
             if (!string.IsNullOrEmpty(missingFile))
-                throw new BadInstallationLocationException($"Parent folder is missing game file {missingFile}, cannot be a TR2 installation.");
+                throw new BadInstallationLocationException($"Parent folder is missing game file {missingFile}, cannot be a {Program.Game} installation.");
             if (!Directory.Exists(Path.Combine(Program.Directories.Game, "music")))
-                throw new BadInstallationLocationException("Parent folder does not contain a music folder, cannot be a TR2 installation.");
+                throw new BadInstallationLocationException($"Parent folder does not contain a music folder, cannot be a {Program.Game} installation.");
         }
 
         /// <summary>

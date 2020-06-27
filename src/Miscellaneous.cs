@@ -1,7 +1,7 @@
 ﻿namespace TR2_Version_Swapper
 {
     /// <summary>
-    ///     Contains miscellaneous constants the program might be u
+    ///     Contains miscellaneous constants.
     /// </summary>
     internal static class Misc
     {

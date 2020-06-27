@@ -102,7 +102,7 @@ namespace TR2_Version_Swapper
         /// </summary>
         private static void SetStageAndPrintSplash()
         {
-            Console.Title = "TR2 Version Swapper";
+            Console.Title = $"{Program.Game} Version Swapper";
             if (Console.WindowWidth < 81)
                 Console.WindowWidth = 81;
 
