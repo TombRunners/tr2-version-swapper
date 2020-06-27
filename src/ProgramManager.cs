@@ -39,11 +39,11 @@ namespace TR2_Version_Swapper
     }
 
     /// <summary>
-    ///     Contains the program settings that can be changed by the user.
+    ///     Represents the deserialized user settings object.
     /// </summary>
     /// <remarks>
-    ///     ReSharper doesn't recognize the public set is used by and required for
-    ///     full JSON deserialization, thus the warning is suppressed.
+    ///     ReSharper doesn't recognize the <see langword="public"/> <see langword="set"/>  
+    ///     is used and required for full JSON deserialization, thus the warning is suppressed.
     /// </remarks>
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     internal struct UserSettings
@@ -68,12 +68,11 @@ namespace TR2_Version_Swapper
     internal static class ProgramManager
     {
         /// <summary>
-        ///     Readies console, handles args and settings, hooks SIGINT.
+        ///     Readies console, handles <paramref name="args"/> and <see cref="UserSettings"/>, hooks SIGINT.
         /// </summary>
         /// <param name="args">Program arguments</param>
         public static void InitializeProgram(IEnumerable<string> args)
         {
-            
             SetStageAndPrintSplash();
 
             switch (HandleProgramArgs(args))
@@ -114,10 +113,10 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Parses and propagates command-line arguments.
+        ///     Parses and propagates <paramref name="args"/>.
         /// </summary>
         /// <param name="args">Program arguments</param>
-        /// <returns>The appropriate ArgumentParseResult value</returns>
+        /// <returns>The appropriate <see cref="ArgumentParseResult"/> value</returns>
         private static ArgumentParseResult HandleProgramArgs(IEnumerable<string> args)
         {
             var result = ArgumentParseResult.ParsedAndShouldContinue;
@@ -139,9 +138,9 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Configures the logger according to program arguments. 
+        ///     Configures the logger according to <paramref name="args"/>. 
         /// </summary>
-        /// <param name="args">Program arguments</param>
+        /// <param name="args"><see cref="ProgramArguments"/></param>
         private static void ConfigLogger(ProgramArguments args)
         {
             LogLevel consoleLogLevel = args.Verbose ? LogLevel.Info : LogLevel.Off;
@@ -171,8 +170,8 @@ namespace TR2_Version_Swapper
         /// <summary>
         ///     Generates and prints customized messages for help and version.
         /// </summary>
-        /// <param name="result">Results from CommandLine's parser</param>
-        /// <param name="errs">Errors from CommandLine's parser</param>
+        /// <param name="result">Results from CommandLine's <see cref="Parser"/></param>
+        /// <param name="errs">Errors from CommandLine's <see cref="Parser"/></param>
         private static void DisplayHelp(ParserResult<ProgramArguments> result, IEnumerable<Error> errs)
         {
             HelpText helpText;
@@ -243,7 +242,7 @@ namespace TR2_Version_Swapper
         }
 
         /// <summary>
-        ///     Parses and deserializes user settings into a <see cref="UserSettings"/> object.
+        ///     Parses and deserializes a file into a <see cref="UserSettings"/> object.
         /// </summary>
         /// <param name="fileName">User settings file name</param>
         private static void ApplyUserSettingsFromFile(string fileName)
@@ -323,9 +322,9 @@ namespace TR2_Version_Swapper
         /// <summary>
         ///     Provides a standardized format to display an error and exit. 
         /// </summary>
-        /// <param name="statement">The string to log and also print to console</param>
-        /// <param name="e">The exception inspiring the early program exit</param>
-        /// <param name="exitCode">The return code to return to the OS</param>
+        /// <param name="statement">String to log and print to console</param>
+        /// <param name="e">Exception causing the early exit</param>
+        /// <param name="exitCode"><inheritdoc cref="EarlyPauseAndExit"/></param>
         public static void GiveErrorMessageAndExit(string statement, Exception e, int exitCode)
         {
             Program.NLogger.Fatal($"{statement} {e.Message}\n{e.StackTrace}");
@@ -337,7 +336,7 @@ namespace TR2_Version_Swapper
         /// <summary>
         ///     Ends program after pausing to prevent immediate CMD window exits.
         /// </summary>
-        /// <param name="exitCode">The return code to return to the OS</param>
+        /// <param name="exitCode">Return code to give the OS</param>
         public static void EarlyPauseAndExit(int exitCode)
         {
             Console.WriteLine("Press any key to exit...");

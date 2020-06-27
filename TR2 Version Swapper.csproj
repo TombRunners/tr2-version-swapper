@@ -30,8 +30,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0-preview.4.20251.6" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0-preview.4.20251.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0-preview.6.20305.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0-preview.6.20305.6" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.6.4" />
     <PackageReference Include="Octokit" Version="0.48.0" />
   </ItemGroup>
