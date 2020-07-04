@@ -1,21 +1,27 @@
 ﻿using System.Collections.Generic;
 
+using TRVS.Core;
+
 namespace TR2_Version_Swapper
 {
-    /// <summary>
-    ///     Contains information about packaged files' names and MD5 hashes.
-    /// </summary>
-    internal static class FileAudit
+    /// <inheritdoc cref="IFileAudit"/>
+    internal class TR2FileAudit : IFileAudit
     {
-        internal static readonly string[] GameFiles =
-        {
-            "tomb2.exe",
-            "data/floating.tr2",
-            "data/title.pcx",
-            "data/tombpc.dat"
-        };
+        /// <inheritdoc/>
+        public IEnumerable<string> GameFiles {
+            get
+            {
+                yield return "tomb2.exe";
+                yield return "data/floating.tr2";
+                yield return "data/title.pcx";
+                yield return "data/tombpc.dat";
+            }
+        }
 
-        internal static readonly Dictionary<string, string> VersionFilesAudit = new Dictionary<string, string>()
+        /// <summary>
+        ///     Maps packaged version files to their MD5 hashes.
+        /// </summary>
+        internal static readonly Dictionary<string, string> VersionFilesAudit = new Dictionary<string, string>
         {
             {"Multipatch/tomb2.exe", "964f0c4e08ff44a905e8fc9a78f605dc"},
             {"Multipatch/data/floating.tr2", "1e7d0d88ff9d569e22982af761bb006b"},
@@ -29,9 +35,12 @@ namespace TR2_Version_Swapper
             {"Eidos UK Box/data/floating.tr2", "b8fc5d8444b15527cec447bc0387c41a"},          
             {"Eidos UK Box/data/title.pcx", "cdf5c232f71fe1d45b184c45252b6fb0"},             
             {"Eidos UK Box/data/tombpc.dat", "d48757da01f8642f1a3d82fae0fc99e4"},            
-        };                                                 
-                                                           
-        internal static readonly Dictionary<string, string> MusicFilesAudit = new Dictionary<string, string>()
+        };
+
+        /// <summary>
+        ///     Maps packaged music fix files to their MD5 hashes.
+        /// </summary>
+        internal static readonly Dictionary<string, string> MusicFilesAudit = new Dictionary<string, string>
         {
             {"fmodex.dll", "a5106cf9d7371f842f500976692dd29e"},
             {"winmm.dll", "f683a8f1a309798ff75d11d65092315a"}, 
@@ -97,8 +106,11 @@ namespace TR2_Version_Swapper
             {"music/60.wma", "b801e9250f7e73526ee08024063c8727"},
             {"music/61.wma", "590e72b218f5e8b48034e3541fe97c6d"}
         };
-                                                           
-        internal static readonly Dictionary<string, string> PatchFilesAudit = new Dictionary<string, string>()
+
+        /// <summary>
+        ///     Maps packaged Patch 1 files to their MD5 hashes.
+        /// </summary>
+        internal static readonly Dictionary<string, string> PatchFilesAudit = new Dictionary<string, string>
         {
             {"tr2p1readme.rtf", "100439b46ecad0a318d757bb814ae890"},
             {"tomb2.exe", "39cab6b4ae3c761b67ae308a0ab22e44"},  // With no-CD crack

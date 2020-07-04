@@ -1,11 +1,14 @@
-﻿namespace TR2_Version_Swapper
+﻿using System.Collections.Generic;
+
+using TRVS.Core;
+
+namespace TR2_Version_Swapper
 {
-    /// <summary>
-    ///     Contains miscellaneous constants.
-    /// </summary>
-    internal static class Misc
+    /// <inheritdoc/>
+    internal class TR2MiscInfo : MiscInfoBase
     {
-        public static readonly string[] AsciiArt =
+        /// <inheritdoc/>
+        public override IEnumerable<string> AsciiArt => new[]
         {
             @"    _______ _____  ___                     ",
             @"   |__   __|  __ \|__ \                    ",
@@ -27,18 +30,10 @@
             @"                    |_|   |_|              "
         };
 
-        public const string RepoLink = "https://github.com/TombRunners/tr2-version-swapper/";
+        /// <inheritdoc/>
+        public override string RepoLink => "https://github.com/TombRunners/tr2-version-swapper/";
 
-        public const string ReleaseLink = "https://github.com/TombRunners/tr2-version-swapper/releases/latest";
-
-        public static readonly string[] DefaultSettingsFile =
-        {
-            @"{",
-            @"  // The number of log files the program will allow before deleting the oldest one(s).",
-            @"  // Set to 0 to allow infinite log file generation.",
-            @"  // Default: 15",
-            @"  ""LogFileLimit"": 15",
-            @"}", 
-        };
+        /// <inheritdoc/>
+        public override string LatestReleaseLink => "https://github.com/TombRunners/tr2-version-swapper/releases/latest";
     }
 }
