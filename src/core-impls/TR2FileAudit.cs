@@ -34,7 +34,7 @@ namespace TR2_Version_Swapper
             {"Eidos UK Box/tomb2.exe", "12d56521ce038b55efba97463357a3d7"},                  
             {"Eidos UK Box/data/floating.tr2", "b8fc5d8444b15527cec447bc0387c41a"},          
             {"Eidos UK Box/data/title.pcx", "cdf5c232f71fe1d45b184c45252b6fb0"},             
-            {"Eidos UK Box/data/tombpc.dat", "d48757da01f8642f1a3d82fae0fc99e4"},            
+            {"Eidos UK Box/data/tombpc.dat", "d48757da01f8642f1a3d82fae0fc99e4"}
         };
 
         /// <summary>
@@ -113,7 +113,7 @@ namespace TR2_Version_Swapper
         internal static readonly Dictionary<string, string> PatchFilesAudit = new Dictionary<string, string>
         {
             {"tr2p1readme.rtf", "100439b46ecad0a318d757bb814ae890"},
-            {"tomb2.exe", "39cab6b4ae3c761b67ae308a0ab22e44"},  // With no-CD crack
+            {"tomb2.exe", "39cab6b4ae3c761b67ae308a0ab22e44"}  // With no-CD crack
         };
     }
 }
