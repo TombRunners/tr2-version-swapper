@@ -28,6 +28,7 @@ Releases contain installation and usage instructions.
 #### Included Utilities
  * Patch 1
  * Music Fix
+ * Fullscreen Border Fix Uninstaller
 
 ### Report Issues / Get Help
 For program bugs or feature requests, use the [issues](https://github.com/TombRunners/tr2-version-swapper/issues) page.

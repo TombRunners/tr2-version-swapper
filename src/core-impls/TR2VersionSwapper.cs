@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-
+using System.Linq;
+using Microsoft.Win32;
 using TRVS.Core;
 
 namespace TR2_Version_Swapper
@@ -31,6 +33,8 @@ namespace TR2_Version_Swapper
             {Version.EPC, "Eidos Premier Collection"},
             {Version.UKB, "Eidos UK Box"}
         };
+
+        private const string FullscreenBorderFixName = "Tomb Raider series fullscreen border fix";
 
         protected override TRVSProgramData ProgramData { get; }
         protected override TRVSProgramManager ProgramManager { get; }
@@ -131,7 +135,8 @@ namespace TR2_Version_Swapper
         /// </remarks>
         private void HandleMusicFix()
         {
-            if (IsMusicFixInstalled())
+            bool musicFixIsInstalled = IsMusicFixInstalled();
+            if (musicFixIsInstalled)
             {
                 ProgramData.NLogger.Debug("Music fix is already installed. Reminding the user they have it installed.");
                 ConsoleIO.PrintHeader("You already have the music fix installed.", "Skipping music fix installation...", ConsoleColor.White);
@@ -152,6 +157,7 @@ namespace TR2_Version_Swapper
                 {
                     ProgramData.NLogger.Debug("User wants the music fix installed...");
                     TryCopyingDirectory(Directories.MusicFix, Directories.Game);
+                    musicFixIsInstalled = true;
                     ProgramData.NLogger.Info("Installed music fix successfully.");
                     ConsoleIO.PrintHeader("Music fix successfully installed!", foregroundColor: ConsoleColor.Green);
                 }
@@ -161,6 +167,12 @@ namespace TR2_Version_Swapper
                     ConsoleIO.PrintHeader("Skipping music fix.", "I'll ask again next time.", ConsoleColor.White);
                 }
             }
+
+            if (musicFixIsInstalled)
+                if (IsFullscreenBorderFixInstalled(out RegistryKey compatibilityPatchKey))
+                    HandleFullscreenBorderFix(compatibilityPatchKey);
+                else
+                    ProgramData.NLogger.Debug("Fullscreen Border Fix compatibility patch not found. Music fix should work fine.");
         }
 
         /// <summary>
@@ -173,6 +185,108 @@ namespace TR2_Version_Swapper
         {
             string firstMissingFile = FileIO.FindMissingFile(TR2FileAudit.MusicFilesAudit.Keys, Directories.Game);
             return string.IsNullOrEmpty(firstMissingFile);
+        }
+
+        /// <summary>
+        ///     Checks the registry to see if "Tomb Raider series fullscreen border fix" is installed.
+        /// </summary>
+        /// <param name="compatibilityPatchKey"><see cref="RegistryKey"/> of the installation if it exists, otherwise <see langword="null"/></param>
+        /// <returns>
+        ///     <see langword="true"/> if the fix is installed, <see langword="false"/> otherwise
+        /// </returns>
+        private static bool IsFullscreenBorderFixInstalled(out RegistryKey compatibilityPatchKey)
+        {
+            const string registryKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+            using RegistryKey installedProgramsKey = Registry.LocalMachine.OpenSubKey(registryKey);
+            if (installedProgramsKey != null)
+            {
+                // Since it is a Windows Compatibility Solution Database file installed, the key we want ends with `.sdb`.
+                IEnumerable<string> installedCompatibilitySolutionDatabases = installedProgramsKey.GetSubKeyNames().Where(name => name.EndsWith(".sdb"));
+                foreach (string database in installedCompatibilitySolutionDatabases)
+                {
+                    RegistryKey patchKey = installedProgramsKey.OpenSubKey(database);
+                    if (patchKey is null)
+                        continue;
+
+                    // Here, an `.sdb` key has two values inside: `DisplayName` and `UninstallString`.
+                    string displayName = (string)patchKey.GetValue("DisplayName");
+                    if (displayName != FullscreenBorderFixName)
+                        continue;
+
+                    compatibilityPatchKey = patchKey;
+                    return true;
+                }
+            }
+
+            compatibilityPatchKey = null;
+            return false;
+        }
+
+        /// <summary>
+        ///     Asks the user if they want to uninstall the fix, then acts appropriately.
+        /// </summary>
+        /// <param name="compatibilityPatchKey"><see cref="RegistryKey"/> of the fix</param>
+        private void HandleFullscreenBorderFix(RegistryKey compatibilityPatchKey)
+        {
+            ProgramData.NLogger.Debug($"{FullscreenBorderFixName} is installed. Alerting the user that it breaks the music fix.");
+            Console.WriteLine($"You currently have a program called \"{FullscreenBorderFixName}\"");
+            Console.WriteLine("installed on your PC. It is a compatibility patch which breaks the music");
+            Console.WriteLine("fix by blocking required DLLs from loading.");
+            Console.WriteLine("The problem can be fixed by uninstalling the compatibility patch (recommended),");
+            Console.WriteLine("or the problem can be worked around by renaming \"tomb2.exe\" (not recommended).");
+            Console.WriteLine("Please note that you are not required to uninstall this patch. Any time you");
+            Console.WriteLine("run this program and you have the music fix installed, I will check for this");
+            Console.WriteLine("compatibility patch and ask again if you want to uninstall it.");
+            bool uninstallPatch = ConsoleIO.UserPromptYesNo($"Allow me to uninstall \"{FullscreenBorderFixName}\"? [y/n]: ");
+            if (uninstallPatch)
+            {
+                ProgramData.NLogger.Debug("User wants the fullscreen border patch uninstalled...");
+                try
+                {
+                    var uninstallProcess = new Process()
+                    {
+                        StartInfo =
+                        {
+                            FileName = "cmd.exe",
+                            Arguments = "/c " + compatibilityPatchKey.GetValue("UninstallString"),
+                            RedirectStandardError = true,
+                            RedirectStandardInput = true,
+                            RedirectStandardOutput = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true,
+                        }
+                    };
+
+                    ProgramData.NLogger.Debug($"Attempting to run `{uninstallProcess.StartInfo.FileName}` with arguments `{uninstallProcess.StartInfo.Arguments}`.");
+                    uninstallProcess.Start();
+                    uninstallProcess.WaitForExit();
+
+                    // If uninstallation was successful, we should not be able to re-open the key.
+                    string compatibilityPatchKeyName = compatibilityPatchKey.Name.Replace(@"HKEY_LOCAL_MACHINE\", string.Empty);
+                    compatibilityPatchKey.Close();
+                    if (Registry.LocalMachine.OpenSubKey(compatibilityPatchKeyName) is null)
+                    {
+                        ProgramData.NLogger.Debug("Fullscreen border patch successfully uninstalled!");
+                        ConsoleIO.PrintHeader("Fullscreen border patch successfully uninstalled!", foregroundColor: ConsoleColor.Green);
+                    }
+                    else
+                    {
+                        throw new ApplicationException("sdbinst failed to uninstall the patch.");
+                    }
+                }
+                catch (Exception e)
+                {
+                    ProgramData.NLogger.Error(e, "Fullscreen border patch uninstallation failed.");
+                    ConsoleIO.PrintHeader("Fullscreen border patch uninstallation failed!", "You'll have to uninstall it yourself, sorry!", ConsoleColor.Red);
+                    Console.WriteLine("You can do this from \"Apps & Features\" like any other program.");
+                }
+            }
+            else
+            {
+                ProgramData.NLogger.Debug("User declined the fullscreen border patch installation.");
+                ConsoleIO.PrintHeader("Skipping fullscreen border patch uninstallation.", "I'll ask again next time.", ConsoleColor.White);
+            }
+
         }
     }
 }
