@@ -64,15 +64,20 @@ namespace TR2_Version_Swapper
         private string VersionPrompt()
         {
             PrintVersionList();
+            string choice = string.Empty;
             int selectionNumber = 0;
             while (selectionNumber < 1 || selectionNumber > 3)
             {
-                Console.Write("Enter the number of your desired version: ");
-                int.TryParse(Console.ReadLine(), out selectionNumber);
+                Console.Write("Enter your desired version number, or enter nothing for the default [3]: ");
+                choice = Console.ReadLine().Trim();
+                if (string.IsNullOrEmpty(choice))
+                    selectionNumber = 3;
+                else
+                    int.TryParse(choice, out selectionNumber);
             }
 
             var selectedVersion = (Version)selectionNumber;
-            ProgramData.NLogger.Debug($"User input `{selectionNumber}`, interpreting as {selectedVersion}");
+            ProgramData.NLogger.Debug($"User input `{choice}`, interpreting as {selectedVersion}");
             return SelectionDictionary[selectedVersion];
         }
 
@@ -110,7 +115,7 @@ namespace TR2_Version_Swapper
         {
             Console.WriteLine("Would you like me to install CORE's Patch 1 on top of your selected version?");
             Console.WriteLine("Please note that you are not required to install this optional patch.");
-            bool installPatch = ConsoleIO.UserPromptYesNo("Install CORE's Patch 1 onto your selected version? [y/n]: ");
+            bool installPatch = ConsoleIO.UserPromptYesNo("Install CORE's Patch 1 onto your selected version? [y/N]: ", ConsoleIO.DefaultOption.No);
             if (installPatch)
             {
                 ProgramData.NLogger.Debug("User wants Patch 1 installed...");
@@ -152,7 +157,7 @@ namespace TR2_Version_Swapper
                 Console.WriteLine("run this program and select a version, I will check for the fix and ask again");
                 Console.WriteLine("if you want to install it. The fix applies to all versions the same, so it only");
                 Console.Write("needs to be installed once. "); // Omit '\n' and leave space for a clean same-line prompt.
-                bool installFix = ConsoleIO.UserPromptYesNo("Install the music fix? [y/n]: ");
+                bool installFix = ConsoleIO.UserPromptYesNo("Install the music fix? [Y/n]: ", ConsoleIO.DefaultOption.Yes);
                 if (installFix)
                 {
                     ProgramData.NLogger.Debug("User wants the music fix installed...");
@@ -237,7 +242,7 @@ namespace TR2_Version_Swapper
             Console.WriteLine("Please note that you are not required to uninstall this patch. Any time you");
             Console.WriteLine("run this program and you have the music fix installed, I will check for this");
             Console.WriteLine("compatibility patch and ask again if you want to uninstall it.");
-            bool uninstallPatch = ConsoleIO.UserPromptYesNo($"Allow me to uninstall \"{FullscreenBorderFixName}\"? [y/n]: ");
+            bool uninstallPatch = ConsoleIO.UserPromptYesNo($"Allow me to uninstall \"{FullscreenBorderFixName}\"? [Y/n]: ", ConsoleIO.DefaultOption.Yes);
             if (uninstallPatch)
             {
                 ProgramData.NLogger.Debug("User wants the fullscreen border patch uninstalled...");
