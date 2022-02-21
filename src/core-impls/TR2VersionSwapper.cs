@@ -33,6 +33,21 @@ namespace TR2_Version_Swapper
             {Version.EPC, "Eidos Premier Collection"},
             {Version.UKB, "Eidos UK Box"}
         };
+        
+        /// <summary>
+        ///     The installed games music track file extensions.
+        /// </summary>
+        /// <remarks>
+        ///     Steam ships with MP3 and GOG versions ship with OGG.
+        /// </remarks>
+        private enum MusicFileType
+        {
+            Mp3 = 1,
+            Ogg = 2,
+            OtherOrUnknown = 3
+        }
+
+        private static readonly List<string> InstalledMusicFixFiles = new List<string> {"fmodex.dll", "winmm.dll"};
 
         private const string FullscreenBorderFixName = "Tomb Raider series fullscreen border fix";
 
@@ -140,8 +155,19 @@ namespace TR2_Version_Swapper
         /// </remarks>
         private void HandleMusicFix()
         {
-            bool musicFixIsInstalled = IsMusicFixInstalled();
-            if (musicFixIsInstalled)
+            MusicFileType ext = DetermineMusicFileType();
+            if (ext == MusicFileType.OtherOrUnknown)
+            {
+                ProgramData.NLogger.Debug("Could not determine which music file types are installed. Alerting user.");
+                Console.WriteLine("I could not find MP3 or OGG files in your installation's music folder.");
+                Console.WriteLine("Therefore, I cannot determine whether you have a correct music fix installed.");
+                Console.WriteLine("I recommend you validate or reinstall from Steam/GOG to acquire music files");
+                Console.WriteLine("that my supplied music fix utility can fix.");
+                return;
+            }
+                                
+            bool correctMusicFixIsInstalled = IsCorrectMusicFixInstalled(ext);
+            if (correctMusicFixIsInstalled)
             {
                 ProgramData.NLogger.Debug("Music fix is already installed. Reminding the user they have it installed.");
                 ConsoleIO.PrintHeader("You already have the music fix installed.", "Skipping music fix installation...", ConsoleColor.White);
@@ -150,19 +176,34 @@ namespace TR2_Version_Swapper
             else
             {
                 ProgramData.NLogger.Debug("Music fix is not installed. Asking the user if they want it to be installed.");
-                Console.WriteLine("You switched to a non-Multipatch version. In-game music might not work and/or");
+                Console.WriteLine("You switched to a non-shipped version. In-game will not work and/or");
                 Console.WriteLine("the game might freeze or lag when it tries to load music. I can install a music");
-                Console.WriteLine("fix which should resolve most music-related issues.");
+                Console.WriteLine("fix to resolve these music issues.");
                 Console.WriteLine("Please note that you are not required to install this optional fix. Any time you");
                 Console.WriteLine("run this program and select a version, I will check for the fix and ask again");
-                Console.WriteLine("if you want to install it. The fix applies to all versions the same, so it only");
-                Console.Write("needs to be installed once. "); // Omit '\n' and leave space for a clean same-line prompt.
+                Console.WriteLine("if you want to install it. The fix works for all affected versions, so it only");
+                Console.Write("needs to be installed once. "); // Omit '\n' and leave space for a clean, same-line prompt.
                 bool installFix = ConsoleIO.UserPromptYesNo("Install the music fix? [Y/n]: ", ConsoleIO.DefaultOption.Yes);
                 if (installFix)
                 {
                     ProgramData.NLogger.Debug("User wants the music fix installed...");
-                    TryCopyingDirectory(Directories.MusicFix, Directories.Game);
-                    musicFixIsInstalled = true;
+                    FileInfo fmodex = new FileInfo(Path.Combine(Directories.MusicFix, "fmodex.dll"));
+                    FileInfo winmm = ext switch
+                    {
+                        MusicFileType.Mp3 => new FileInfo(Path.Combine(Directories.MusicFix, "winmm-mp3.dll")),
+                        MusicFileType.Ogg => new FileInfo(Path.Combine(Directories.MusicFix, "winmm-ogg.dll")),
+                        _ => throw new ArgumentException()
+                    };
+                    try
+                    {
+                        fmodex.CopyTo(Path.Combine(Directories.Game, "fmodex.dll"), overwrite: true);
+                        winmm.CopyTo(Path.Combine(Directories.Game, "winmm.dll"), overwrite: true);
+                    }
+                    catch (Exception e)
+                    {
+                        ProgramManager.GiveErrorMessageAndExit("Failed to copy files!", e, 3);
+                    }
+                    correctMusicFixIsInstalled = true;
                     ProgramData.NLogger.Info("Installed music fix successfully.");
                     ConsoleIO.PrintHeader("Music fix successfully installed!", foregroundColor: ConsoleColor.Green);
                 }
@@ -173,11 +214,26 @@ namespace TR2_Version_Swapper
                 }
             }
 
-            if (musicFixIsInstalled)
+            if (correctMusicFixIsInstalled)
                 if (IsFullscreenBorderFixInstalled(out RegistryKey compatibilityPatchKey))
                     HandleFullscreenBorderFix(compatibilityPatchKey);
                 else
                     ProgramData.NLogger.Debug("Fullscreen Border Fix compatibility patch not found. Music fix should work fine.");
+        }
+
+        private MusicFileType DetermineMusicFileType()
+        {
+            var dir = new DirectoryInfo(Path.Combine(Directories.Game, "music"));
+            FileInfo[] files = dir.GetFiles();
+            foreach (FileInfo file in files)
+            {
+                ProgramData.NLogger.Debug($"Checking {file}");
+                if (file.Extension.ToLower() == ".mp3")
+                    return MusicFileType.Mp3;
+                else if(file.Extension.ToLower() == ".ogg")
+                    return MusicFileType.Ogg;
+            }
+            return MusicFileType.OtherOrUnknown;
         }
 
         /// <summary>
@@ -186,10 +242,19 @@ namespace TR2_Version_Swapper
         /// <returns>
         ///     <see langword="true"/> if music fix is installed, <see langword="false"/> otherwise
         /// </returns>
-        private bool IsMusicFixInstalled()
+        private bool IsCorrectMusicFixInstalled(MusicFileType ext)
         {
-            string firstMissingFile = FileIO.FindMissingFile(TR2FileAudit.MusicFilesAudit.Keys, Directories.Game);
-            return string.IsNullOrEmpty(firstMissingFile);
+            string firstMissingFile = FileIO.FindMissingFile(InstalledMusicFixFiles, Directories.Game);
+            if (!string.IsNullOrEmpty(firstMissingFile))
+                return false;
+
+            var hash = FileIO.ComputeMd5Hash(Path.Combine(Directories.Game, "winmm.dll"));
+            return ext switch
+            {
+                MusicFileType.Mp3 => hash == TR2FileAudit.MusicFilesAudit["winmm-mp3.dll"],
+                MusicFileType.Ogg => hash == TR2FileAudit.MusicFilesAudit["winmm-ogg.dll"],
+                _ => throw new ArgumentException(),
+            };
         }
 
         /// <summary>
