@@ -296,6 +296,7 @@ namespace TR2_Version_Swapper
         ///     Asks the user if they want to uninstall the fix, then acts appropriately.
         /// </summary>
         /// <param name="compatibilityPatchKey"><see cref="RegistryKey"/> of the fix</param>
+        [SuppressMessage("ReSharper", "StringLiteralTypo")]
         private void HandleFullscreenBorderFix(RegistryKey compatibilityPatchKey)
         {
             ProgramData.NLogger.Debug($"{FullscreenBorderFixName} is installed. Alerting the user that it breaks the music fix.");
