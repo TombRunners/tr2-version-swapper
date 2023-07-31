@@ -159,7 +159,7 @@ namespace TR2_Version_Swapper
             if (ext == MusicFileType.OtherOrUnknown)
             {
                 ProgramData.NLogger.Debug("Could not determine which music file types are installed. Alerting user.");
-                Console.WriteLine("I could not find MP3 or OGG files in your installation's music folder.");
+                Console.WriteLine("I could not find MP3 or OGG files in your game installation's music folder.");
                 Console.WriteLine("Therefore, I cannot determine whether you have a correct music fix installed.");
                 Console.WriteLine("I recommend you validate or reinstall from Steam/GOG to acquire music files");
                 Console.WriteLine("that my supplied music fix utility can fix.");
@@ -176,12 +176,12 @@ namespace TR2_Version_Swapper
             else
             {
                 ProgramData.NLogger.Debug("Music fix is not installed. Asking the user if they want it to be installed.");
-                Console.WriteLine("You switched to a non-shipped version. In-game will not work and/or");
-                Console.WriteLine("the game might freeze or lag when it tries to load music. I can install a music");
-                Console.WriteLine("fix to resolve these music issues.");
+                Console.WriteLine("After switching game versions, in-game music will likely fail and/or the game");
+                Console.WriteLine("could freeze or lag when it tries to load music files. I can install a music");
+                Console.WriteLine("fix to resolve these issues.");
                 Console.WriteLine("Please note that you are not required to install this optional fix. Any time you");
                 Console.WriteLine("run this program and select a version, I will check for the fix and ask again");
-                Console.WriteLine("if you want to install it. The fix works for all affected versions, so it only");
+                Console.WriteLine("if you need to install it. The fix works for all affected versions, so it only");
                 Console.Write("needs to be installed once. "); // Omit '\n' and leave space for a clean, same-line prompt.
                 bool installFix = ConsoleIO.UserPromptYesNo("Install the music fix? [Y/n]: ", ConsoleIO.DefaultOption.Yes);
                 if (installFix)
@@ -214,11 +214,13 @@ namespace TR2_Version_Swapper
                 }
             }
 
-            if (correctMusicFixIsInstalled)
-                if (IsFullscreenBorderFixInstalled(out RegistryKey compatibilityPatchKey))
-                    HandleFullscreenBorderFix(compatibilityPatchKey);
-                else
-                    ProgramData.NLogger.Debug("Fullscreen Border Fix compatibility patch not found. Music fix should work fine.");
+            if (!correctMusicFixIsInstalled) 
+                return;
+
+            if (IsFullscreenBorderFixInstalled(out RegistryKey compatibilityPatchKey))
+                HandleFullscreenBorderFix(compatibilityPatchKey);
+            else
+                ProgramData.NLogger.Debug("Fullscreen Border Fix compatibility patch not found. Music fix should work fine.");
         }
 
         private MusicFileType DetermineMusicFileType()
@@ -303,9 +305,8 @@ namespace TR2_Version_Swapper
             Console.WriteLine($"You currently have a program called \"{FullscreenBorderFixName}\"");
             Console.WriteLine("installed on your PC. It is a compatibility patch which breaks the music");
             Console.WriteLine("fix by blocking required DLLs from loading.");
-            Console.WriteLine("The problem can be fixed by uninstalling the compatibility patch (recommended),");
-            Console.WriteLine("or the problem can be worked around by renaming \"tomb2.exe\" (not recommended).");
-            Console.WriteLine("Please note that you are not required to uninstall this patch. Any time you");
+            Console.WriteLine("The problem can be fixed by uninstalling the compatibility patch (recommended).");
+            Console.WriteLine("Please note that you are not required to uninstall the program. Any time you");
             Console.WriteLine("run this program and you have the music fix installed, I will check for this");
             Console.WriteLine("compatibility patch and ask again if you want to uninstall it.");
             bool uninstallPatch = ConsoleIO.UserPromptYesNo($"Allow me to uninstall \"{FullscreenBorderFixName}\"? [Y/n]: ", ConsoleIO.DefaultOption.Yes);
@@ -337,8 +338,9 @@ namespace TR2_Version_Swapper
                     compatibilityPatchKey.Close();
                     if (Registry.LocalMachine.OpenSubKey(compatibilityPatchKeyName) is null)
                     {
-                        ProgramData.NLogger.Debug("Fullscreen border patch successfully uninstalled!");
-                        ConsoleIO.PrintHeader("Fullscreen border patch successfully uninstalled!", foregroundColor: ConsoleColor.Green);
+                        const string successMessage = "Fullscreen border patch successfully uninstalled!";
+                        ProgramData.NLogger.Debug(successMessage);
+                        ConsoleIO.PrintHeader(successMessage, foregroundColor: ConsoleColor.Green);
                     }
                     else
                     {
@@ -347,8 +349,9 @@ namespace TR2_Version_Swapper
                 }
                 catch (Exception e)
                 {
-                    ProgramData.NLogger.Error(e, "Fullscreen border patch uninstallation failed.");
-                    ConsoleIO.PrintHeader("Fullscreen border patch uninstallation failed!", "You'll have to uninstall it yourself, sorry!", ConsoleColor.Red);
+                    const string failureMessage = "Fullscreen border patch uninstallation failed!";
+                    ProgramData.NLogger.Error(e, failureMessage);
+                    ConsoleIO.PrintHeader(failureMessage, "You'll have to uninstall it yourself, sorry!", ConsoleColor.Red);
                     Console.WriteLine("You can do this from \"Apps & Features\" like any other program.");
                 }
             }
