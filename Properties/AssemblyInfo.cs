@@ -1,5 +1,5 @@
-﻿using System.Resources;
-using System.Reflection;
+﻿using System.Reflection;
+using System.Resources;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following
@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("TR2 Version Swapper")]
-[assembly: AssemblyCopyright("Copyright © 2020-2022 Cody M Mason")]
+[assembly: AssemblyCopyright("Copyright © 2020-2023 Cody M Mason")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
