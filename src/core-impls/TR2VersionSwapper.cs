@@ -79,12 +79,12 @@ namespace TR2_Version_Swapper
         private string VersionPrompt()
         {
             PrintVersionList();
-            string choice = string.Empty;
-            int selectionNumber = 0;
+            var choice = string.Empty;
+            var selectionNumber = 0;
             while (selectionNumber < 1 || selectionNumber > 3)
             {
                 Console.Write("Enter your desired version number, or enter nothing for the default [3]: ");
-                choice = Console.ReadLine().Trim();
+                choice = Console.ReadLine()?.Trim();
                 if (string.IsNullOrEmpty(choice))
                     selectionNumber = 3;
                 else
@@ -116,7 +116,7 @@ namespace TR2_Version_Swapper
         private static void PrintVersionList()
         {
             Console.WriteLine("Version List:");
-            for (int i = 1; i <= SelectionDictionary.Values.Count; ++i)
+            for (var i = 1; i <= SelectionDictionary.Values.Count; ++i)
             {
                 string name = SelectionDictionary[(Version) i];
                 Console.WriteLine($"\t{i}: {name}");
@@ -155,7 +155,7 @@ namespace TR2_Version_Swapper
         /// </remarks>
         private void HandleMusicFix()
         {
-            MusicFileType ext = DetermineMusicFileType();
+            var ext = DetermineMusicFileType();
             if (ext == MusicFileType.OtherOrUnknown)
             {
                 ProgramData.NLogger.Debug("Could not determine which music file types are installed. Alerting user.");
@@ -187,8 +187,9 @@ namespace TR2_Version_Swapper
                 if (installFix)
                 {
                     ProgramData.NLogger.Debug("User wants the music fix installed...");
-                    FileInfo fmodex = new FileInfo(Path.Combine(Directories.MusicFix, "fmodex.dll"));
-                    FileInfo winmm = ext switch
+                    var fmodex = new FileInfo(Path.Combine(Directories.MusicFix, "fmodex.dll"));
+                    // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+                    var winmm = ext switch
                     {
                         MusicFileType.Mp3 => new FileInfo(Path.Combine(Directories.MusicFix, "winmm-mp3.dll")),
                         MusicFileType.Ogg => new FileInfo(Path.Combine(Directories.MusicFix, "winmm-ogg.dll")),
@@ -217,7 +218,7 @@ namespace TR2_Version_Swapper
             if (!correctMusicFixIsInstalled) 
                 return;
 
-            if (IsFullscreenBorderFixInstalled(out RegistryKey compatibilityPatchKey))
+            if (IsFullscreenBorderFixInstalled(out var compatibilityPatchKey))
                 HandleFullscreenBorderFix(compatibilityPatchKey);
             else
                 ProgramData.NLogger.Debug("Fullscreen Border Fix compatibility patch not found. Music fix should work fine.");
@@ -226,14 +227,17 @@ namespace TR2_Version_Swapper
         private MusicFileType DetermineMusicFileType()
         {
             var dir = new DirectoryInfo(Path.Combine(Directories.Game, "music"));
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
+            var files = dir.GetFiles();
+            foreach (var file in files)
             {
                 ProgramData.NLogger.Debug($"Checking {file}");
-                if (file.Extension.ToLower() == ".mp3")
-                    return MusicFileType.Mp3;
-                else if(file.Extension.ToLower() == ".ogg")
-                    return MusicFileType.Ogg;
+                switch (file.Extension.ToLower())
+                {
+                    case ".mp3":
+                        return MusicFileType.Mp3;
+                    case ".ogg":
+                        return MusicFileType.Ogg;
+                }
             }
             return MusicFileType.OtherOrUnknown;
         }
@@ -250,12 +254,13 @@ namespace TR2_Version_Swapper
             if (!string.IsNullOrEmpty(firstMissingFile))
                 return false;
 
-            var hash = FileIO.ComputeMd5Hash(Path.Combine(Directories.Game, "winmm.dll"));
+            string hash = FileIO.ComputeMd5Hash(Path.Combine(Directories.Game, "winmm.dll"));
+            // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
             return ext switch
             {
                 MusicFileType.Mp3 => hash == TR2FileAudit.MusicFilesAudit["winmm-mp3.dll"],
                 MusicFileType.Ogg => hash == TR2FileAudit.MusicFilesAudit["winmm-ogg.dll"],
-                _ => throw new ArgumentException(),
+                _ => throw new ArgumentException()
             };
         }
 
@@ -269,19 +274,19 @@ namespace TR2_Version_Swapper
         private static bool IsFullscreenBorderFixInstalled(out RegistryKey compatibilityPatchKey)
         {
             const string registryKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
-            using RegistryKey installedProgramsKey = Registry.LocalMachine.OpenSubKey(registryKey);
+            using var installedProgramsKey = Registry.LocalMachine.OpenSubKey(registryKey);
             if (installedProgramsKey != null)
             {
                 // Since it is a Windows Compatibility Solution Database file installed, the key we want ends with `.sdb`.
-                IEnumerable<string> installedCompatibilitySolutionDatabases = installedProgramsKey.GetSubKeyNames().Where(name => name.EndsWith(".sdb"));
+                var installedCompatibilitySolutionDatabases = installedProgramsKey.GetSubKeyNames().Where(name => name.EndsWith(".sdb"));
                 foreach (string database in installedCompatibilitySolutionDatabases)
                 {
-                    RegistryKey patchKey = installedProgramsKey.OpenSubKey(database);
+                    var patchKey = installedProgramsKey.OpenSubKey(database);
                     if (patchKey is null)
                         continue;
 
                     // Here, an `.sdb` key has two values inside: `DisplayName` and `UninstallString`.
-                    string displayName = (string)patchKey.GetValue("DisplayName");
+                    var displayName = (string)patchKey.GetValue("DisplayName");
                     if (displayName != FullscreenBorderFixName)
                         continue;
 
@@ -315,7 +320,7 @@ namespace TR2_Version_Swapper
                 ProgramData.NLogger.Debug("User wants the fullscreen border patch uninstalled...");
                 try
                 {
-                    var uninstallProcess = new Process()
+                    var uninstallProcess = new Process
                     {
                         StartInfo =
                         {
@@ -325,7 +330,7 @@ namespace TR2_Version_Swapper
                             RedirectStandardInput = true,
                             RedirectStandardOutput = true,
                             UseShellExecute = false,
-                            CreateNoWindow = true,
+                            CreateNoWindow = true
                         }
                     };
 
@@ -360,7 +365,6 @@ namespace TR2_Version_Swapper
                 ProgramData.NLogger.Debug("User declined the fullscreen border patch installation.");
                 ConsoleIO.PrintHeader("Skipping fullscreen border patch uninstallation.", "I'll ask again next time.", ConsoleColor.White);
             }
-
         }
     }
 }
