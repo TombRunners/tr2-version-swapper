@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-
 using TRVS.Core;
 
 namespace TR2_Version_Swapper

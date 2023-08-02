@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-
 using TRVS.Core;
 
 namespace TR2_Version_Swapper
@@ -44,7 +43,7 @@ namespace TR2_Version_Swapper
         {
             {"fmodex.dll", "a5106cf9d7371f842f500976692dd29e"},
             {"winmm-mp3.dll", "69f37deb6bba2e7621f794c9dbaf301c"},
-            {"winmm-ogg.dll", "134a5dd8d713e7898dd269b7b6aeb969"},
+            {"winmm-ogg.dll", "134a5dd8d713e7898dd269b7b6aeb969"}
         };
 
         /// <summary>

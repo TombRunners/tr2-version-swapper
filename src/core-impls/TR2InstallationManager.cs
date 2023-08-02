@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-
 using TRVS.Core;
 
 namespace TR2_Version_Swapper

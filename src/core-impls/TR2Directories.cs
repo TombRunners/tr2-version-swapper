@@ -1,5 +1,4 @@
 ﻿using System.IO;
-
 using TRVS.Core;
 
 namespace TR2_Version_Swapper
@@ -28,7 +27,7 @@ namespace TR2_Version_Swapper
         internal TR2Directories()
         {
             string root = Path.GetFullPath(Directory.GetCurrentDirectory());
-            Game = Directory.GetParent(root).FullName;
+            Game = Directory.GetParent(root)?.FullName;
             Versions = Path.Combine(root, "versions");
             MusicFix = Path.Combine(root, "utilities/music_fix");
             Patch = Path.Combine(root, "utilities/patch");

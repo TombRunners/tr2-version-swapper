@@ -1,4 +1,5 @@
-﻿using TRVS.Core;
+﻿using NLog;
+using TRVS.Core;
 
 namespace TR2_Version_Swapper
 {
@@ -9,7 +10,7 @@ namespace TR2_Version_Swapper
         {
             GameAbbreviation = "TR2",
             GameExe = "tomb2",
-            NLogger = NLog.LogManager.GetCurrentClassLogger(),
+            NLogger = LogManager.GetCurrentClassLogger(),
             MiscInfo = new TR2MiscInfo(),
             Settings = new TRVSUserSettings(),
             Version = typeof(Program).Assembly.GetName().Version
