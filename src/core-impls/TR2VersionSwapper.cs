@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using TRVS.Core;
 
@@ -42,9 +43,12 @@ namespace TR2_Version_Swapper
         /// </remarks>
         private enum MusicFileType
         {
-            Mp3 = 1,
-            Ogg = 2,
-            OtherOrUnknown = 3
+            Mp3,
+            Ogg,
+            OtherOrUnknown,
+            DirectoryNotFound,
+            Multiple,
+            None
         }
 
         private static readonly List<string> InstalledMusicFixFiles = new List<string> {"fmodex.dll", "winmm.dll"};
@@ -155,19 +159,11 @@ namespace TR2_Version_Swapper
         /// </remarks>
         private void HandleMusicFix()
         {
-            var ext = DetermineMusicFileType();
-            if (ext == MusicFileType.OtherOrUnknown)
-            {
-                ProgramData.NLogger.Debug("Could not determine which music file types are installed. Alerting user.");
-                Console.WriteLine("I could not find MP3 or OGG files in your game installation's music folder.");
-                Console.WriteLine("Therefore, I cannot determine whether you have a correct music fix installed.");
-                Console.WriteLine("I recommend you validate or reinstall from Steam/GOG to acquire music files");
-                Console.WriteLine("that my supplied music fix utility can fix.");
+            if (!TryFindExpectedMusicFileType(out var musicFileType)) 
                 return;
-            }
-                                
-            bool correctMusicFixIsInstalled = IsCorrectMusicFixInstalled(ext);
-            if (correctMusicFixIsInstalled)
+
+            bool correctMusicDllInstallation = IsCorrectMusicFixInstalled(musicFileType);
+            if (correctMusicDllInstallation)
             {
                 ProgramData.NLogger.Debug("Music fix is already installed. Reminding the user they have it installed.");
                 ConsoleIO.PrintHeader("You already have the music fix installed.", "Skipping music fix installation...", ConsoleColor.White);
@@ -178,7 +174,7 @@ namespace TR2_Version_Swapper
                 ProgramData.NLogger.Debug("Music fix is not installed. Asking the user if they want it to be installed.");
                 Console.WriteLine("After switching game versions, in-game music will likely fail and/or the game");
                 Console.WriteLine("could freeze or lag when it tries to load music files. I can install a music");
-                Console.WriteLine("fix to resolve these issues.");
+                Console.WriteLine("fix to resolve these issues and rename music files as required.");
                 Console.WriteLine("Please note that you are not required to install this optional fix. Any time you");
                 Console.WriteLine("run this program and select a version, I will check for the fix and ask again");
                 Console.WriteLine("if you need to install it. The fix works for all affected versions, so it only");
@@ -189,11 +185,11 @@ namespace TR2_Version_Swapper
                     ProgramData.NLogger.Debug("User wants the music fix installed...");
                     var fmodex = new FileInfo(Path.Combine(Directories.MusicFix, "fmodex.dll"));
                     // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-                    var winmm = ext switch
+                    var winmm = musicFileType switch
                     {
                         MusicFileType.Mp3 => new FileInfo(Path.Combine(Directories.MusicFix, "winmm-mp3.dll")),
                         MusicFileType.Ogg => new FileInfo(Path.Combine(Directories.MusicFix, "winmm-ogg.dll")),
-                        _ => throw new ArgumentException()
+                        _ => throw new ArgumentOutOfRangeException(nameof(musicFileType), musicFileType, "Only expected music file types are valid.")
                     };
                     try
                     {
@@ -204,9 +200,22 @@ namespace TR2_Version_Swapper
                     {
                         ProgramManager.GiveErrorMessageAndExit("Failed to copy files!", e, 3);
                     }
-                    correctMusicFixIsInstalled = true;
-                    ProgramData.NLogger.Info("Installed music fix successfully.");
-                    ConsoleIO.PrintHeader("Music fix successfully installed!", foregroundColor: ConsoleColor.Green);
+                    correctMusicDllInstallation = true;
+
+                    // Digitally shipped game versions containing MP3 files do not contain a music file naming convention compatible with music fix DLLs.
+                    bool correctMusicFileNames = musicFileType != MusicFileType.Mp3 || TryCorrectMp3FileNames();
+                    if (correctMusicFileNames)
+                    {
+                        const string successMessage = "Music fix successfully installed!";
+                        ProgramData.NLogger.Info(successMessage);
+                        ConsoleIO.PrintHeader(successMessage, foregroundColor: ConsoleColor.Green);
+                    }
+                    else
+                    {
+                        const string warnMessage = "Music fix partially installed for MP3 files.";
+                        ProgramData.NLogger.Warn(warnMessage);
+                        ConsoleIO.PrintHeader(warnMessage, "File rename failed. Re-run me or manually rename per HOW-TO-USE.txt.", ConsoleColor.Yellow);
+                    }
                 }
                 else
                 {
@@ -215,31 +224,101 @@ namespace TR2_Version_Swapper
                 }
             }
 
-            if (!correctMusicFixIsInstalled) 
+            if (!correctMusicDllInstallation) 
                 return;
 
             if (IsFullscreenBorderFixInstalled(out var compatibilityPatchKey))
                 HandleFullscreenBorderFix(compatibilityPatchKey);
             else
-                ProgramData.NLogger.Debug("Fullscreen Border Fix compatibility patch not found. Music fix should work fine.");
+                ProgramData.NLogger.Debug("Fullscreen Border Fix compatibility patch not found. Music fix should work.");
         }
 
+        /// <summary>
+        ///     Tries to find an expected music file type.
+        /// </summary>
+        /// <param name="musicFileType">Determined music file type</param>
+        /// <returns>
+        ///     <see langword="true"/> if an expected music file is found, <see langword="false"/> otherwise
+        /// </returns>
+        private bool TryFindExpectedMusicFileType(out MusicFileType musicFileType)
+        {
+            musicFileType = DetermineMusicFileType();
+            string debugMessage;
+            string consoleMessage;
+            switch (musicFileType)
+            {
+                case MusicFileType.DirectoryNotFound:
+                    debugMessage = "Alerting user that their game installation lacks a music folder.";
+                    consoleMessage = "Your game installation does not contain a music folder.";
+                    break;
+                case MusicFileType.Multiple:
+                    debugMessage = "Alerting user that multiple music file extensions were found.";
+                    consoleMessage = "I found multiple music file types in your game installation's music folder.";
+                    break;
+                case MusicFileType.None:
+                    debugMessage = "Alerting user that no music file extensions were found.";
+                    consoleMessage = "I found no expected files in your game installation's music folder.";
+                    break;
+                case MusicFileType.OtherOrUnknown:
+                    debugMessage = "Alerting user that their music file extension type is unknown.";
+                    consoleMessage = "I could not find MP3 or OGG files in your game installation's music folder.";
+                    break;
+                case MusicFileType.Mp3:
+                case MusicFileType.Ogg:
+                default:
+                    return true;
+            }
+
+            ProgramData.NLogger.Debug(debugMessage);
+            Console.WriteLine(consoleMessage);
+            Console.WriteLine("My music fix utility expects that you have either MP3 or OGG music files.");
+            Console.WriteLine("Therefore, I cannot determine whether you have a correct music fix installed.");
+            Console.WriteLine("I recommend you validate or reinstall from Steam/GOG to acquire music files");
+            Console.WriteLine("that my supplied music fix utility can fix.");
+            return false;
+        }
+
+        /// <summary>
+        ///     Uses music file extensions in the game installation's music folder to determine music file type. 
+        /// </summary>
+        /// <returns>Determined music file type</returns>
         private MusicFileType DetermineMusicFileType()
         {
-            var dir = new DirectoryInfo(Path.Combine(Directories.Game, "music"));
+            // Ensure music folder exists.
+            string musicPath = Path.Combine(Directories.Game, "music");
+            if (!Directory.Exists(musicPath))
+                return MusicFileType.DirectoryNotFound;
+
+            var dir = new DirectoryInfo(musicPath);
             var files = dir.GetFiles();
-            foreach (var file in files)
+            var extensionsFound = files.Select(f => f.Extension.ToLower()).ToHashSet();
+
+            // Check for expected amount of music file extensions.
+            if (extensionsFound.Count == 0)
             {
-                ProgramData.NLogger.Debug($"Checking {file}");
-                switch (file.Extension.ToLower())
-                {
-                    case ".mp3":
-                        return MusicFileType.Mp3;
-                    case ".ogg":
-                        return MusicFileType.Ogg;
-                }
+                ProgramData.NLogger.Debug("No file extensions found in music directory. Cannot determine correct type.");
+                return MusicFileType.None;
             }
-            return MusicFileType.OtherOrUnknown;
+            if (extensionsFound.Count >= 2)
+            {
+                ProgramData.NLogger.Debug("Multiple file extensions in music directory. Cannot determine correct type.");
+                return MusicFileType.Multiple;
+            }
+
+            // Check for an expected music file extension.
+            string extension = extensionsFound.First(); // FirstOrDefault not needed since exactly one element exists.
+            switch (extension)
+            {
+                case ".mp3":
+                    ProgramData.NLogger.Debug("Found expected extension: MP3.");
+                    return MusicFileType.Mp3;
+                case ".ogg":
+                    ProgramData.NLogger.Debug("Found expected extension: OGG.");
+                    return MusicFileType.Ogg;
+                default:
+                    ProgramData.NLogger.Debug("Extension in music directory does not match any expected value.");
+                    return MusicFileType.OtherOrUnknown;
+            }
         }
 
         /// <summary>
@@ -250,18 +329,86 @@ namespace TR2_Version_Swapper
         /// </returns>
         private bool IsCorrectMusicFixInstalled(MusicFileType ext)
         {
-            string firstMissingFile = FileIO.FindMissingFile(InstalledMusicFixFiles, Directories.Game);
-            if (!string.IsNullOrEmpty(firstMissingFile))
+            string missingFile = FileIO.FindMissingFile(InstalledMusicFixFiles, Directories.Game);
+            if (!string.IsNullOrEmpty(missingFile))
                 return false;
 
             string hash = FileIO.ComputeMd5Hash(Path.Combine(Directories.Game, "winmm.dll"));
-            // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-            return ext switch
+            switch (ext)
             {
-                MusicFileType.Mp3 => hash == TR2FileAudit.MusicFilesAudit["winmm-mp3.dll"],
-                MusicFileType.Ogg => hash == TR2FileAudit.MusicFilesAudit["winmm-ogg.dll"],
-                _ => throw new ArgumentException()
-            };
+                case MusicFileType.Mp3:
+                    if (hash != TR2FileAudit.MusicFilesAudit["winmm-mp3.dll"])
+                        return false;
+                    var dir = new DirectoryInfo(Path.Combine(Directories.Game, "music"));
+                    var files = dir.GetFiles();
+                    return files.All(f => Mp3FileNameConventionIsCorrect(f.Name));
+                case MusicFileType.Ogg:
+                    return hash == TR2FileAudit.MusicFilesAudit["winmm-ogg.dll"];
+                case MusicFileType.OtherOrUnknown:
+                case MusicFileType.DirectoryNotFound:
+                case MusicFileType.Multiple:
+                case MusicFileType.None:
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(ext), ext, "Only expected music file types are valid.");
+            }
+        }
+
+        /// <summary>
+        ///     Determines if an MP3 file's naming convention is correct.
+        /// </summary>
+        /// <param name="fileName">File name to check</param>
+        /// <returns>
+        ///     <see langword="true"/> if file naming convention is correct, <see langword="false"/> otherwise
+        /// </returns>
+        /// <remarks>
+        ///     Required file naming convention is 2-digit numbers with leading zeroes, e.g., '02.mp3' instead of '2.mp3'.
+        ///     This requirement is based on music fix DLL requirements and all known digitally-shipped game versions with MP3 files.
+        /// </remarks>
+        private static bool Mp3FileNameConventionIsCorrect(string fileName)
+        {
+            const string pattern = @"\b\d{2}\b";
+            return Regex.Match(fileName, pattern).Success;
+        }
+
+        /// <summary>
+        ///     Attempts to correct the MP3 music file names, if incorrect.
+        /// </summary>
+        /// <returns>
+        ///     <see langword="true"/> if file names were correct or are now correct, <see langword="false"/> otherwise
+        /// </returns>
+        private bool TryCorrectMp3FileNames()
+        {
+            var success = true;
+
+            ProgramData.NLogger.Debug("Game installation contains MP3 files and music fix installed. Checking file names.");
+            var dir = new DirectoryInfo(Path.Combine(Directories.Game, "music"));
+            var files = dir.GetFiles();
+            foreach (var file in files)
+            {
+                if (Mp3FileNameConventionIsCorrect(file.Name))
+                {
+                    ProgramData.NLogger.Trace($"{file} matches required naming convention.");
+                    continue;
+                }
+
+                // This assumes that file names consist of a number and extension, e.g., '13.mp3', which is true for digitally-shipped game versions.
+                // In these game versions, problematic file names are one-digit numbers without a leading zero, e.g., '2.mp3', which should be '02.mp3'.
+                var newFileName = $"0{file.Name}";
+                try
+                {
+                    file.MoveTo(Path.Combine(dir.FullName, newFileName));
+                    ProgramData.NLogger.Debug($"Successfully renamed {file} to {newFileName}.");
+                }
+                catch
+                {
+                    success = false;
+                    var errorMessage = $"Unable to rename {file} to {newFileName}.";
+                    ProgramData.NLogger.Warn(errorMessage);
+                    ConsoleIO.PrintWithColor(errorMessage, ConsoleColor.Yellow);
+                }
+            }
+            
+            return success;
         }
 
         /// <summary>
