@@ -399,7 +399,7 @@ namespace TR2_Version_Swapper
                     file.MoveTo(Path.Combine(dir.FullName, newFileName));
                     ProgramData.NLogger.Debug($"Successfully renamed {file} to {newFileName}.");
                 }
-                catch (Exception)
+                catch
                 {
                     success = false;
                     var errorMessage = $"Unable to rename {file} to {newFileName}.";
